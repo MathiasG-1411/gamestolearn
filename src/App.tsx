@@ -10,6 +10,23 @@ export default function App() {
   const [worksheets, setWorksheets] = useState<Worksheet[]>([])
   const [current, setCurrent] = useState<Worksheet | null>(null)
   const [importToast, setImportToast] = useState(false)
+  const [importToastMsg, setImportToastMsg] = useState('📥 Fiche importée depuis le lien partagé')
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const stored = localStorage.getItem('fichespro_theme')
+    if (stored === 'dark') return true
+    if (stored === 'light') return false
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('fichespro_theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('fichespro_theme', 'light')
+    }
+  }, [darkMode])
 
   useEffect(() => {
     setWorksheets(loadWorksheets())
@@ -19,6 +36,7 @@ export default function App() {
       const imported: Worksheet = { ...shared, id: uuidv4(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
       setCurrent(imported)
       clearShareHash()
+      setImportToastMsg('📥 Fiche importée depuis le lien partagé')
       setImportToast(true)
       setTimeout(() => setImportToast(false), 3000)
     }
@@ -40,6 +58,45 @@ export default function App() {
   const handleBack = () => {
     setCurrent(null)
     setWorksheets(loadWorksheets())
+  }
+
+  const handleDuplicate = (ws: Worksheet) => {
+    const copy: Worksheet = {
+      ...ws,
+      id: uuidv4(),
+      meta: { ...ws.meta, title: `(Copie) ${ws.meta.title}` },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    saveWorksheet(copy)
+    setWorksheets(loadWorksheets())
+    setCurrent(copy)
+  }
+
+  const handleRename = (id: string, title: string) => {
+    const all = loadWorksheets()
+    const ws = all.find(w => w.id === id)
+    if (!ws) return
+    const updated = { ...ws, meta: { ...ws.meta, title }, updatedAt: new Date().toISOString() }
+    saveWorksheet(updated)
+    setWorksheets(loadWorksheets())
+    if (current?.id === id) setCurrent(updated)
+  }
+
+  const handleImport = (imported: Worksheet[]) => {
+    const existing = loadWorksheets()
+    const existingIds = new Set(existing.map(w => w.id))
+    let count = 0
+    for (const ws of imported) {
+      if (!existingIds.has(ws.id)) {
+        saveWorksheet(ws)
+        count++
+      }
+    }
+    setWorksheets(loadWorksheets())
+    setImportToastMsg(`📥 ${count} fiche${count !== 1 ? 's' : ''} importée${count !== 1 ? 's' : ''}`)
+    setImportToast(true)
+    setTimeout(() => setImportToast(false), 3000)
   }
 
   const handleDifferentiate = (ws: Worksheet) => {
@@ -75,6 +132,8 @@ export default function App() {
         onChange={handleChange}
         onBack={handleBack}
         onDifferentiate={handleDifferentiate}
+        darkMode={darkMode}
+        onToggleDark={() => setDarkMode(d => !d)}
       />
     )
   }
@@ -83,13 +142,18 @@ export default function App() {
     <>
       {importToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg shadow-lg">
-          📥 Fiche importée depuis le lien partagé
+          {importToastMsg}
         </div>
       )}
       <TemplateGallery
         worksheets={worksheets}
         onSelect={openWorksheet}
         onDelete={handleDelete}
+        onDuplicate={handleDuplicate}
+        onRename={handleRename}
+        onImport={handleImport}
+        darkMode={darkMode}
+        onToggleDark={() => setDarkMode(d => !d)}
       />
     </>
   )

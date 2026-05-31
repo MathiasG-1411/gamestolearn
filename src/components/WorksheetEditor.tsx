@@ -16,6 +16,8 @@ interface Props {
   onChange: (ws: Worksheet) => void
   onBack: () => void
   onDifferentiate: (ws: Worksheet) => void
+  darkMode?: boolean
+  onToggleDark?: () => void
 }
 
 const BLOCK_MENU: { type: BlockType; label: string; icon: string; desc: string; group: string }[] = [
