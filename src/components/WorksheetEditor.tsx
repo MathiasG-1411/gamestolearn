@@ -44,6 +44,14 @@ const BLOCK_MENU: { type: BlockType; label: string; icon: string; desc: string; 
 const GROUPS = ['Structure', 'Contenu', 'Exercices', 'Mise en page']
 const MAX_HISTORY = 50
 
+// Page border presets
+const BORDER_PRESETS = [
+  { label: 'Classique fin', color: '#374151', width: 1, style: 'solid' as const, offset: 8 },
+  { label: 'Double trait', color: '#1e1b4b', width: 3, style: 'double' as const, offset: 10 },
+  { label: 'Pointillés', color: '#6366f1', width: 2, style: 'dashed' as const, offset: 10 },
+  { label: 'Sans cadre', color: '', width: 0, style: 'solid' as const, offset: 8 },
+]
+
 function createDefaultBlock(type: BlockType): Block {
   const id = uuidv4()
   switch (type) {
@@ -76,6 +84,304 @@ function createDefaultBlock(type: BlockType): Block {
   }
 }
 
+function blockPreviewLabel(block: Block): string {
+  const menuItem = BLOCK_MENU.find(m => m.type === block.type)
+  const icon = menuItem?.icon ?? '·'
+  switch (block.type) {
+    case 'text': return `${icon} ${(block.content || '').slice(0, 30) || 'Texte vide'}`
+    case 'heading': return `${icon} ${(block.content || '').slice(0, 30) || 'Titre vide'}`
+    case 'exercise-header': return `${icon} Ex. ${block.number} — ${block.title}`
+    case 'qcm': return `${icon} ${(block.question || '').slice(0, 28) || 'QCM'}`
+    case 'true-false': return `${icon} Vrai/Faux (${block.statements.length})`
+    case 'fill-blank': return `${icon} ${(block.instruction || 'Texte à trous').slice(0, 28)}`
+    case 'matching': return `${icon} Relier (${block.leftItems.length})`
+    case 'exercise-item': return `${icon} ${(block.questionText || '').slice(0, 28) || 'Question'}`
+    case 'table': return `${icon} Tableau ${block.rows[0]?.length ?? 0}×${block.rows.length}`
+    case 'columns': return `${icon} Colonnes ×${block.columns}`
+    case 'math': return `${icon} ${block.latex.slice(0, 25)}`
+    case 'image': return `${icon} Image`
+    case 'divider': return `${icon} Séparateur`
+    case 'blank-lines': return `${icon} Lignes ×${block.count}`
+    case 'rubric': return `${icon} Grille (${block.criteria.length} critères)`
+    case 'shape': return `${icon} ${block.variant} ×${block.count ?? 1}`
+    default: return menuItem?.label ?? 'Bloc'
+  }
+}
+
+// --- Left Sidebar ---
+interface SidebarProps {
+  blocks: Block[]
+  selectedId: string | null
+  onAddBlock: (type: BlockType) => void
+  onSelectBlock: (id: string) => void
+  onReorderBlocks: (blocks: Block[]) => void
+  collapsed: boolean
+  onToggle: () => void
+  sidebarTab: 'palette' | 'nav'
+  onTabChange: (t: 'palette' | 'nav') => void
+}
+
+function EditorSidebar({ blocks, selectedId, onAddBlock, onSelectBlock, onReorderBlocks, collapsed, onToggle, sidebarTab, onTabChange }: SidebarProps) {
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
+  const dragNavRef = useRef<number | null>(null)
+  const [navDragOver, setNavDragOver] = useState<number | null>(null)
+
+  const toggleGroup = (g: string) => setCollapsedGroups(prev => ({ ...prev, [g]: !prev[g] }))
+
+  const handleNavDragStart = (idx: number) => { dragNavRef.current = idx }
+  const handleNavDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    if (navDragOver !== idx) setNavDragOver(idx)
+  }
+  const handleNavDrop = (e: React.DragEvent, dropIdx: number) => {
+    e.preventDefault()
+    const dragIdx = dragNavRef.current
+    if (dragIdx === null || dragIdx === dropIdx) { dragNavRef.current = null; setNavDragOver(null); return }
+    const newBlocks = [...blocks]
+    const [item] = newBlocks.splice(dragIdx, 1)
+    newBlocks.splice(dropIdx, 0, item)
+    onReorderBlocks(newBlocks)
+    dragNavRef.current = null
+    setNavDragOver(null)
+  }
+
+  const blockRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (selectedId && sidebarTab === 'nav') {
+      const el = document.getElementById(`nav-block-${selectedId}`)
+      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [selectedId, sidebarTab])
+
+  return (
+    <>
+      {/* Overlay backdrop on mobile when open */}
+      {!collapsed && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={onToggle}
+        />
+      )}
+
+      {/* Sidebar panel */}
+      <div
+        ref={blockRef}
+        className={[
+          'flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 print:hidden transition-all duration-200 overflow-hidden',
+          'fixed md:relative z-40 md:z-auto top-0 bottom-0 left-0',
+          collapsed ? 'w-0 md:w-0' : 'w-64 md:w-64',
+        ].join(' ')}
+        style={{ height: '100%' }}
+      >
+        {!collapsed && (
+          <>
+            {/* Tab header */}
+            <div className="flex items-center border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <button
+                onClick={() => onTabChange('palette')}
+                className={`flex-1 py-2.5 text-xs font-semibold transition ${sidebarTab === 'palette' ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              >
+                + Palette
+              </button>
+              <button
+                onClick={() => onTabChange('nav')}
+                className={`flex-1 py-2.5 text-xs font-semibold transition ${sidebarTab === 'nav' ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              >
+                ☰ Blocs
+              </button>
+              <button onClick={onToggle} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-sm">✕</button>
+            </div>
+
+            {/* Tab content */}
+            <div className="flex-1 overflow-y-auto">
+              {sidebarTab === 'palette' && (
+                <div className="p-2 space-y-1">
+                  {GROUPS.map(group => (
+                    <div key={group}>
+                      <button
+                        onClick={() => toggleGroup(group)}
+                        className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-gray-200 transition rounded"
+                      >
+                        <span>{group}</span>
+                        <span className="text-gray-300 dark:text-gray-600">{collapsedGroups[group] ? '▶' : '▼'}</span>
+                      </button>
+                      {!collapsedGroups[group] && (
+                        <div className="space-y-0.5 mb-1">
+                          {BLOCK_MENU.filter(m => m.group === group).map(item => (
+                            <button
+                              key={item.type}
+                              onClick={() => onAddBlock(item.type)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/40 text-left transition group"
+                            >
+                              <span className="w-6 h-6 bg-gray-100 dark:bg-gray-700 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-800 rounded flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 flex-shrink-0">{item.icon}</span>
+                              <div className="min-w-0">
+                                <div className="text-xs font-medium text-gray-800 dark:text-gray-200 leading-tight">{item.label}</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {sidebarTab === 'nav' && (
+                <div className="p-2 space-y-0.5">
+                  {blocks.length === 0 && (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-6">Aucun bloc dans la fiche.</p>
+                  )}
+                  {blocks.map((block, idx) => (
+                    <div
+                      id={`nav-block-${block.id}`}
+                      key={block.id}
+                      draggable
+                      onDragStart={() => handleNavDragStart(idx)}
+                      onDragOver={e => handleNavDragOver(e, idx)}
+                      onDrop={e => handleNavDrop(e, idx)}
+                      onDragEnd={() => { dragNavRef.current = null; setNavDragOver(null) }}
+                      onClick={() => {
+                        onSelectBlock(block.id)
+                        const el = document.getElementById(`block-${block.id}`)
+                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }}
+                      className={[
+                        'flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition text-xs',
+                        selectedId === block.id
+                          ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
+                        navDragOver === idx ? 'border-t-2 border-blue-400' : '',
+                      ].join(' ')}
+                    >
+                      <span className="w-5 h-5 rounded bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 flex items-center justify-center text-xs font-mono flex-shrink-0 cursor-grab">{idx + 1}</span>
+                      <span className="truncate flex-1 font-medium leading-snug">{blockPreviewLabel(block)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  )
+}
+
+// --- Page Border Panel ---
+interface PageBorderPanelProps {
+  meta: { pageBorderColor?: string; pageBorderWidth?: number; pageBorderStyle?: 'solid' | 'dashed' | 'dotted' | 'double' | 'ridge' | 'groove'; pageBorderOffset?: number }
+  onChange: (patch: { pageBorderColor?: string; pageBorderWidth?: number; pageBorderStyle?: 'solid' | 'dashed' | 'dotted' | 'double' | 'ridge' | 'groove'; pageBorderOffset?: number }) => void
+  onClose: () => void
+}
+
+function PageBorderPanel({ meta, onChange, onClose }: PageBorderPanelProps) {
+  const color = meta.pageBorderColor ?? '#374151'
+  const width = meta.pageBorderWidth ?? 0
+  const style = meta.pageBorderStyle ?? 'solid'
+  const offset = meta.pageBorderOffset ?? 8
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 print:hidden" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 w-80 space-y-4"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">📄 Cadre de page</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm">✕</button>
+        </div>
+
+        {/* Presets */}
+        <div>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Présets</p>
+          <div className="grid grid-cols-2 gap-2">
+            {BORDER_PRESETS.map(p => (
+              <button
+                key={p.label}
+                onClick={() => onChange({ pageBorderColor: p.color, pageBorderWidth: p.width, pageBorderStyle: p.style, pageBorderOffset: p.offset })}
+                className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-700 dark:text-gray-300 transition"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Color */}
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Couleur du cadre</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={color}
+              onChange={e => onChange({ pageBorderColor: e.target.value })}
+              className="w-10 h-8 rounded cursor-pointer border border-gray-200 dark:border-gray-600"
+            />
+            <input
+              type="text"
+              value={color}
+              onChange={e => onChange({ pageBorderColor: e.target.value })}
+              className="flex-1 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono"
+            />
+          </div>
+        </label>
+
+        {/* Width */}
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Épaisseur : {width} mm</span>
+          <input
+            type="range"
+            min={0}
+            max={8}
+            value={width}
+            onChange={e => onChange({ pageBorderWidth: Number(e.target.value) })}
+            className="w-full accent-indigo-500"
+          />
+        </label>
+
+        {/* Style */}
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Style</span>
+          <select
+            value={style}
+            onChange={e => onChange({ pageBorderStyle: e.target.value as 'solid' | 'dashed' | 'dotted' | 'double' | 'ridge' | 'groove' })}
+            className="border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="solid">Trait plein</option>
+            <option value="dashed">Tirets</option>
+            <option value="dotted">Pointillés</option>
+            <option value="double">Double trait</option>
+            <option value="ridge">Relief</option>
+            <option value="groove">Gravé</option>
+          </select>
+        </label>
+
+        {/* Offset */}
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Marge intérieure : {offset} mm</span>
+          <input
+            type="range"
+            min={5}
+            max={20}
+            value={offset}
+            onChange={e => onChange({ pageBorderOffset: Number(e.target.value) })}
+            className="w-full accent-indigo-500"
+          />
+        </label>
+
+        {/* Remove border */}
+        <button
+          onClick={() => onChange({ pageBorderWidth: 0, pageBorderColor: '' })}
+          className="w-full text-xs py-2 rounded-lg border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+        >
+          Retirer le cadre
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function WorksheetEditor({ worksheet, onChange, onBack, onDifferentiate, darkMode, onToggleDark }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showAddMenu, setShowAddMenu] = useState(false)
@@ -86,6 +392,21 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
   const [showPresentation, setShowPresentation] = useState(false)
   const [showAI, setShowAI] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [showPageBorder, setShowPageBorder] = useState(false)
+
+  // Feature 3: Sidebar state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem('fichespro_sidebar_collapsed') === 'true' } catch { return false }
+  })
+  const [sidebarTab, setSidebarTab] = useState<'palette' | 'nav'>('palette')
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(v => {
+      const next = !v
+      try { localStorage.setItem('fichespro_sidebar_collapsed', String(next)) } catch { /* ignore */ }
+      return next
+    })
+  }
 
   // Feature 3: Save indicator
   const [savedBadge, setSavedBadge] = useState(false)
@@ -300,6 +621,21 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
   const canUndo = historyIndexRef.current > 0
   const canRedo = historyIndexRef.current < historyRef.current.length - 1
 
+  // Build page border style
+  const borderW = worksheet.meta.pageBorderWidth ?? 0
+  const borderColor = worksheet.meta.pageBorderColor ?? ''
+  const borderStyle = worksheet.meta.pageBorderStyle ?? 'solid'
+  const borderOffset = worksheet.meta.pageBorderOffset ?? 8
+  const hasBorder = borderW > 0 && borderColor
+
+  const printAreaStyle: React.CSSProperties = hasBorder
+    ? {
+        border: `${borderW}mm ${borderStyle} ${borderColor}`,
+        padding: `${borderOffset}mm`,
+        boxSizing: 'border-box',
+      }
+    : {}
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
       {/* Toast */}
@@ -311,6 +647,16 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
 
       {/* Top bar */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 py-2 flex items-center gap-1.5 sticky top-0 z-30 print:hidden flex-wrap">
+        {/* Sidebar toggle */}
+        {!previewMode && (
+          <button
+            onClick={toggleSidebar}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 flex-shrink-0"
+            title={sidebarCollapsed ? 'Ouvrir le panneau' : 'Fermer le panneau'}
+          >
+            {sidebarCollapsed ? '☰' : '⊲'}
+          </button>
+        )}
         <button onClick={onBack} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 flex-shrink-0" title="Retour">←</button>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
@@ -351,6 +697,17 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
             title="Rétablir (Ctrl+Y)"
           >↪</button>
 
+          {/* Feature 1: Page border button */}
+          {!previewMode && (
+            <button
+              onClick={() => setShowPageBorder(true)}
+              className="px-2 py-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium transition border border-slate-200 dark:border-slate-600"
+              title="Cadre de page"
+            >
+              📄 Page
+            </button>
+          )}
+
           <button onClick={() => setShowAI(true)} className="px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg text-xs font-bold transition shadow-sm" title="Générer avec l'IA">✨ IA</button>
           <button onClick={() => setShowBank(!showBank)} className="px-2 py-1.5 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium transition border border-amber-200 dark:border-amber-700" title="Banque de questions">📚</button>
           <button onClick={() => setShowPresentation(true)} className="px-2 py-1.5 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 rounded-lg text-xs font-medium transition border border-purple-200 dark:border-purple-700" title="Mode présentation">🎯</button>
@@ -385,11 +742,30 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Left sidebar */}
+        {!previewMode && (
+          <EditorSidebar
+            blocks={worksheet.blocks}
+            selectedId={selectedId}
+            onAddBlock={addBlock}
+            onSelectBlock={id => setSelectedId(id)}
+            onReorderBlocks={updateBlocks}
+            collapsed={sidebarCollapsed}
+            onToggle={toggleSidebar}
+            sidebarTab={sidebarTab}
+            onTabChange={setSidebarTab}
+          />
+        )}
+
         {/* Main canvas */}
         <div className="flex-1 overflow-y-auto p-4">
           <div className="max-w-[210mm] mx-auto">
-            <div id="worksheet-print" className="bg-white shadow-lg rounded-lg p-8 min-h-[297mm]">
+            <div
+              id="worksheet-print"
+              className="bg-white shadow-lg rounded-lg min-h-[297mm]"
+              style={hasBorder ? { ...printAreaStyle, padding: `${borderOffset}mm` } : { padding: '2rem' }}
+            >
               <WorksheetHeader
                 meta={worksheet.meta}
                 editMode={!previewMode && editingHeader}
@@ -410,6 +786,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
                   return (
                     <div
                       key={block.id}
+                      id={`block-${block.id}`}
                       draggable={!previewMode}
                       onDragStart={e => handleDragStart(e, index)}
                       onDragOver={e => handleDragOver(e, index)}
@@ -449,6 +826,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
 
               {!previewMode && (
                 <div className="mt-4 print:hidden">
+                  {/* Mobile: show "+" add button. Desktop: hidden since sidebar has palette */}
                   <button
                     onClick={() => setShowAddMenu(!showAddMenu)}
                     className="w-full border-2 border-dashed border-indigo-200 hover:border-indigo-400 text-indigo-400 hover:text-indigo-600 rounded-lg py-3 text-sm font-medium transition"
@@ -525,6 +903,15 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
             showToast(`✨ ${blocks.length} blocs insérés depuis l'IA`)
           }}
           onClose={() => setShowAI(false)}
+        />
+      )}
+
+      {/* Page border panel */}
+      {showPageBorder && (
+        <PageBorderPanel
+          meta={worksheet.meta}
+          onChange={patch => onChange({ ...worksheet, meta: { ...worksheet.meta, ...patch }, updatedAt: new Date().toISOString() })}
+          onClose={() => setShowPageBorder(false)}
         />
       )}
     </div>

@@ -234,6 +234,11 @@ export interface WorksheetMeta {
   showScore: boolean
   showName: boolean
   showDate: boolean
+  // Feature 1: Page border
+  pageBorderColor?: string
+  pageBorderWidth?: number
+  pageBorderStyle?: 'solid' | 'dashed' | 'dotted' | 'double' | 'ridge' | 'groove'
+  pageBorderOffset?: number
 }
 
 export interface Worksheet {
