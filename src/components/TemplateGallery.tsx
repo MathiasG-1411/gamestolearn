@@ -104,6 +104,9 @@ export default function TemplateGallery({ worksheets, onSelect, onDelete }: Prop
                       {ws.meta.level && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{ws.meta.level}</span>
                       )}
+                      {ws.version && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 font-semibold">Version {ws.version}</span>
+                      )}
                     </div>
                     <p className="text-xs text-gray-400 mt-2">
                       {ws.blocks.length} bloc{ws.blocks.length !== 1 ? 's' : ''} · modifié {new Date(ws.updatedAt).toLocaleDateString('fr-FR')}

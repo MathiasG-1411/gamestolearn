@@ -1,10 +1,11 @@
-import type { Block, BaseBlock } from '../types/worksheet'
+import type { Block, BaseBlock, RubricBlock } from '../types/worksheet'
 import MathRenderer from './MathRenderer'
 import ShapeRenderer from './ShapeRenderer'
 
 interface Props {
   block: Block
   editMode?: boolean
+  correctionMode?: boolean
 }
 
 function blockContainerStyle(block: BaseBlock): React.CSSProperties {
@@ -32,9 +33,19 @@ function BlockWrapper({ block, children }: { block: Block; children: React.React
   return <div style={style} className={cls}>{children}</div>
 }
 
-export default function BlockRenderer({ block, editMode = false }: Props) {
+export default function BlockRenderer({ block, editMode = false, correctionMode = false }: Props) {
   const inner = renderInner(block, editMode)
-  return <BlockWrapper block={block}>{inner}</BlockWrapper>
+  return (
+    <BlockWrapper block={block}>
+      {inner}
+      {correctionMode && block.correction && (
+        <div className="mt-2 px-3 py-2 bg-green-50 border-l-4 border-green-500 rounded-r print:bg-white print:border-green-600">
+          <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">✓ Corrigé : </span>
+          <span className="text-sm text-green-800 whitespace-pre-wrap">{block.correction}</span>
+        </div>
+      )}
+    </BlockWrapper>
+  )
 }
 
 function renderInner(block: Block, editMode: boolean) {
@@ -434,6 +445,42 @@ function renderInner(block: Block, editMode: boolean) {
         <div className="my-2">
           {questionZone}
           {answerZone}
+        </div>
+      )
+    }
+
+    case 'rubric': {
+      const b = block as RubricBlock
+      return (
+        <div className="my-2 overflow-x-auto">
+          {b.title && <p className="font-semibold text-gray-800 mb-2">{b.title}</p>}
+          <table className="border-collapse w-full text-sm">
+            <thead>
+              <tr>
+                <th className="border border-gray-300 px-3 py-2 bg-gray-100 text-left font-semibold text-gray-700 min-w-[120px]">Critère</th>
+                {b.levels.map((lvl, li) => (
+                  <th key={li} className="border border-gray-300 px-3 py-2 bg-indigo-50 text-center font-semibold text-indigo-800">
+                    {lvl}
+                    {b.showPoints && b.levelPoints?.[li] !== undefined && (
+                      <span className="block text-xs font-normal text-indigo-500">{b.levelPoints[li]} pt{(b.levelPoints[li] ?? 0) > 1 ? 's' : ''}</span>
+                    )}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {b.criteria.map((crit, ci) => (
+                <tr key={ci} className={ci % 2 === 0 ? '' : 'bg-gray-50'}>
+                  <td className="border border-gray-300 px-3 py-2 font-medium text-gray-800">{crit.name}</td>
+                  {b.levels.map((_, li) => (
+                    <td key={li} className="border border-gray-300 px-3 py-2 text-gray-600 text-xs">
+                      {crit.descriptions[li] || ''}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )
     }

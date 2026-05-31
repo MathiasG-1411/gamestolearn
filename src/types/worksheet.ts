@@ -16,6 +16,7 @@ export type BlockType =
   | 'fill-blank'
   | 'matching'
   | 'exercise-item'
+  | 'rubric'
 
 export interface BaseBlock {
   id: string
@@ -28,6 +29,10 @@ export interface BaseBlock {
   padding?: 'none' | 'sm' | 'md' | 'lg'
   rounded?: 'none' | 'sm' | 'md' | 'lg'
   fontFamily?: string
+  // Corrigé
+  correction?: string
+  // Banque — label for identification
+  bankLabel?: string
 }
 
 export interface TextBlock extends BaseBlock {
@@ -195,6 +200,21 @@ export type Block =
   | FillBlankBlock
   | MatchingBlock
   | ExerciseItemBlock
+  | RubricBlock
+
+export interface RubricCriterion {
+  name: string
+  descriptions: string[]  // one per level
+}
+
+export interface RubricBlock extends BaseBlock {
+  type: 'rubric'
+  title?: string
+  levels: string[]          // e.g. ['Insuffisant', 'Satisfaisant', 'Bien', 'Très bien']
+  criteria: RubricCriterion[]
+  showPoints: boolean
+  levelPoints?: number[]    // points per level (e.g. [0, 1, 2, 3])
+}
 
 export interface WorksheetMeta {
   title: string
@@ -216,6 +236,9 @@ export interface Worksheet {
   blocks: Block[]
   createdAt: string
   updatedAt: string
+  // Différenciation
+  version?: string     // 'A', 'B', 'C'…
+  baseId?: string      // links differentiated copies to original
 }
 
 export const SUBJECTS = [

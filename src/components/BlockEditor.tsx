@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Block, TextBlock, HeadingBlock, MathBlock, TableBlock, ColumnsBlock, ShapeBlock, ExerciseHeaderBlock, BlankLinesBlock, ListBlock, ShapeVariant, QCMBlock, TrueFalseBlock, FillBlankBlock, MatchingBlock, ExerciseItemBlock, AnswerStyle, QuestionStyle } from '../types/worksheet'
+import type { Block, TextBlock, HeadingBlock, MathBlock, TableBlock, ColumnsBlock, ShapeBlock, ExerciseHeaderBlock, BlankLinesBlock, ListBlock, ShapeVariant, QCMBlock, TrueFalseBlock, FillBlankBlock, MatchingBlock, ExerciseItemBlock, AnswerStyle, QuestionStyle, RubricBlock } from '../types/worksheet'
 import { FONT_OPTIONS } from '../types/worksheet'
 import MathRenderer from './MathRenderer'
 
@@ -142,6 +142,19 @@ export default function BlockEditor({ block, onChange }: Props) {
     <div>
       {renderBlockSpecificEditor(block, update)}
       <BlockStyleSection block={block} onChange={onChange} />
+      {/* Corrigé field — shared for all block types */}
+      <div className="mt-3 border-t border-gray-100 pt-3">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">✓ Réponse / Corrigé</span>
+          <textarea
+            className={`border border-green-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-green-300 bg-green-50`}
+            rows={2}
+            value={block.correction || ''}
+            onChange={e => update({ correction: e.target.value || undefined })}
+            placeholder="Réponse attendue (visible en mode corrigé)…"
+          />
+        </label>
+      </div>
     </div>
   )
 }
@@ -679,6 +692,54 @@ function renderBlockSpecificEditor(block: Block, update: (patch: Partial<Block>)
               </button>
             </div>
           </Field>
+        </div>
+      )
+    }
+
+    case 'rubric': {
+      const b = block as RubricBlock
+      const updateCritName = (ci: number, val: string) => update({ criteria: b.criteria.map((c, i) => i === ci ? { ...c, name: val } : c) })
+      const updateCritDesc = (ci: number, li: number, val: string) => update({
+        criteria: b.criteria.map((c, i) => i === ci ? { ...c, descriptions: c.descriptions.map((d, j) => j === li ? val : d) } : c)
+      })
+      const addCrit = () => update({ criteria: [...b.criteria, { name: '', descriptions: b.levels.map(() => '') }] })
+      const removeCrit = (ci: number) => { if (b.criteria.length > 1) update({ criteria: b.criteria.filter((_, i) => i !== ci) }) }
+      const updateLevel = (li: number, val: string) => update({ levels: b.levels.map((l, i) => i === li ? val : l) })
+      const updatePoints = (li: number, val: string) => update({ levelPoints: (b.levelPoints || b.levels.map(() => 0)).map((p, i) => i === li ? (parseInt(val) || 0) : p) })
+      return (
+        <div className="space-y-3">
+          <Field label="Titre (optionnel)">
+            <input className={inputCls} value={b.title || ''} onChange={e => update({ title: e.target.value })} placeholder="Grille d'évaluation…" />
+          </Field>
+          <Field label="Niveaux (colonnes)">
+            {b.levels.map((lvl, li) => (
+              <div key={li} className="flex gap-1 items-center mb-1">
+                <input className={`${inputCls} flex-1 text-xs`} value={lvl} onChange={e => updateLevel(li, e.target.value)} placeholder={`Niveau ${li+1}…`} />
+                {b.showPoints && (
+                  <input type="number" min={0} className={`${inputCls} w-14 text-xs`} value={b.levelPoints?.[li] ?? 0} onChange={e => updatePoints(li, e.target.value)} placeholder="pts" />
+                )}
+              </div>
+            ))}
+          </Field>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked={b.showPoints} onChange={e => update({ showPoints: e.target.checked, levelPoints: e.target.checked ? b.levels.map((_, i) => i) : undefined })} />
+            Afficher les points par niveau
+          </label>
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Critères (lignes)</span>
+            {b.criteria.map((crit, ci) => (
+              <div key={ci} className="border border-gray-200 rounded p-2 space-y-1.5 bg-gray-50">
+                <div className="flex gap-1 items-center">
+                  <input className={`${inputCls} flex-1 text-xs font-medium`} value={crit.name} onChange={e => updateCritName(ci, e.target.value)} placeholder={`Critère ${ci+1}…`} />
+                  <button type="button" onClick={() => removeCrit(ci)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                </div>
+                {b.levels.map((lvl, li) => (
+                  <input key={li} className={`${inputCls} text-xs`} value={crit.descriptions[li] || ''} onChange={e => updateCritDesc(ci, li, e.target.value)} placeholder={`${lvl} : description…`} />
+                ))}
+              </div>
+            ))}
+            <button type="button" onClick={addCrit} className="text-xs px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200">+ Critère</button>
+          </div>
         </div>
       )
     }
