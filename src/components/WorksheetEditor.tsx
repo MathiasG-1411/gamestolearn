@@ -22,25 +22,54 @@ interface Props {
   darkMode?: boolean
 }
 
-const BLOCK_MENU: { type: BlockType; label: string; icon: string; desc: string; group: string }[] = [
-  { type: 'exercise-header', label: 'Exercice', icon: '📝', desc: 'En-tête numéroté avec points', group: 'Structure' },
-  { type: 'heading', label: 'Titre', icon: 'T', desc: 'Titre de section H1/H2/H3', group: 'Structure' },
-  { type: 'divider', label: 'Séparateur', icon: '—', desc: 'Ligne de séparation', group: 'Structure' },
-  { type: 'text', label: 'Texte', icon: '¶', desc: 'Paragraphe de texte libre', group: 'Contenu' },
-  { type: 'math', label: 'Formule maths', icon: '∑', desc: 'Expression LaTeX (fractions…)', group: 'Contenu' },
-  { type: 'numbered-list', label: 'Liste numérotée', icon: '1.', desc: 'Liste avec numéros', group: 'Contenu' },
-  { type: 'bullet-list', label: 'Liste à puces', icon: '•', desc: 'Liste avec puces', group: 'Contenu' },
-  { type: 'image', label: 'Image', icon: '🖼', desc: 'Image depuis URL', group: 'Contenu' },
-  { type: 'exercise-item', label: 'Question / Réponse', icon: '❓', desc: 'Zone question + réponse flexible', group: 'Exercices' },
-  { type: 'qcm', label: 'QCM', icon: '🔘', desc: 'Questions à choix multiples', group: 'Exercices' },
-  { type: 'true-false', label: 'Vrai / Faux', icon: '✓✗', desc: 'Affirmations à cocher', group: 'Exercices' },
-  { type: 'fill-blank', label: 'Texte à trous', icon: '___', desc: 'Texte avec trous à compléter', group: 'Exercices' },
-  { type: 'matching', label: 'Relier', icon: '↔', desc: 'Relier deux colonnes', group: 'Exercices' },
-  { type: 'blank-lines', label: 'Lignes réponse', icon: '≡', desc: 'Lignes pour écrire', group: 'Exercices' },
-  { type: 'rubric', label: 'Grille d\'évaluation', icon: '📋', desc: 'Critères avec niveaux', group: 'Exercices' },
-  { type: 'table', label: 'Tableau', icon: '▦', desc: 'Tableau lignes/colonnes', group: 'Mise en page' },
-  { type: 'columns', label: 'Colonnes', icon: '⊞', desc: 'Texte en colonnes', group: 'Mise en page' },
-  { type: 'shape', label: 'Formes', icon: '◆', desc: 'Formes géométriques colorées', group: 'Mise en page' },
+// SVG icon per block type
+const BLOCK_ICONS: Record<string, JSX.Element> = {
+  'exercise-header': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="3" width="16" height="5" rx="1.5"/><path strokeLinecap="round" d="M2 11h10M2 14h7"/></svg>,
+  'heading': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" d="M4 5v10M16 5v10M4 10h12"/></svg>,
+  'divider': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" d="M3 10h14"/><circle cx="10" cy="10" r="1.2" fill="currentColor" stroke="none"/></svg>,
+  'text': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" d="M4 6h12M4 9h10M4 12h12M4 15h7"/></svg>,
+  'math': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" d="M4 7h5M4 13h5m3-7l2 6 2-6M15 7v6"/></svg>,
+  'numbered-list': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" d="M8 6h8M8 10h8M8 14h8"/><text x="2" y="9" fontSize="6" fill="currentColor" stroke="none">1</text><text x="2" y="13.5" fontSize="6" fill="currentColor" stroke="none">2</text><text x="2" y="18" fontSize="6" fill="currentColor" stroke="none">3</text></svg>,
+  'bullet-list': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="4" cy="6.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="10.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="14.5" r="1.2" fill="currentColor" stroke="none"/><path strokeLinecap="round" d="M8 6.5h8M8 10.5h8M8 14.5h8"/></svg>,
+  'image': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="4" width="16" height="12" rx="1.5"/><circle cx="7" cy="8.5" r="1.5" fill="none"/><path strokeLinecap="round" d="M2 14l4-4 3 3 3-3 4 4"/></svg>,
+  'exercise-item': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" d="M4 5h12M4 8h10"/><rect x="2" y="11" width="16" height="5" rx="1" strokeDasharray="2 1"/></svg>,
+  'qcm': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="5" cy="6" r="2"/><circle cx="5" cy="10" r="2"/><circle cx="5" cy="14" r="2"/><circle cx="5" cy="6" r="0.8" fill="currentColor" stroke="none"/><path strokeLinecap="round" d="M10 6h6M10 10h6M10 14h6"/></svg>,
+  'true-false': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="5" width="5" height="4" rx="1"/><rect x="2" y="12" width="5" height="4" rx="1"/><path strokeLinecap="round" d="M10 7h6M10 14h6"/><path strokeLinecap="round" strokeWidth="2" d="M3.5 7.2l1 1 1.5-1.5"/></svg>,
+  'fill-blank': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" d="M2 7h4M8 7h2M12 7h4M2 11h7"/><path strokeLinecap="round" strokeWidth="2.5" d="M11.5 11h4.5"/></svg>,
+  'matching': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="5" cy="7" r="2"/><circle cx="5" cy="13" r="2"/><circle cx="15" cy="7" r="2"/><circle cx="15" cy="13" r="2"/><path strokeLinecap="round" strokeDasharray="1.5 1.5" d="M7 7h6M7 13h6"/></svg>,
+  'blank-lines': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" d="M2 7h16M2 10h16M2 13h16M2 16h12"/></svg>,
+  'rubric': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="3" width="16" height="14" rx="1.5"/><path d="M2 7h16M6 7v10"/><path strokeLinecap="round" d="M9 10h6M9 13h6"/></svg>,
+  'table': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="3" width="16" height="14" rx="1"/><path d="M2 8h16M8 8v9M12 8v9"/></svg>,
+  'columns': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="3" width="7" height="14" rx="1"/><rect x="11" y="3" width="7" height="14" rx="1"/></svg>,
+  'shape': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="7" cy="13" r="3"/><rect x="11" y="4" width="6" height="6" rx="1"/><path strokeLinecap="round" d="M3 9l4-6 4 6"/></svg>,
+}
+
+const GROUP_COLORS: Record<string, { bg: string; icon: string; label: string }> = {
+  'Structure': { bg: 'bg-slate-100 group-hover:bg-slate-200', icon: 'text-slate-600 group-hover:text-slate-800', label: 'text-slate-500' },
+  'Contenu': { bg: 'bg-blue-50 group-hover:bg-blue-100', icon: 'text-blue-600 group-hover:text-blue-700', label: 'text-blue-400' },
+  'Exercices': { bg: 'bg-violet-50 group-hover:bg-violet-100', icon: 'text-violet-600 group-hover:text-violet-700', label: 'text-violet-400' },
+  'Mise en page': { bg: 'bg-emerald-50 group-hover:bg-emerald-100', icon: 'text-emerald-600 group-hover:text-emerald-700', label: 'text-emerald-400' },
+}
+
+const BLOCK_MENU: { type: BlockType; label: string; desc: string; group: string }[] = [
+  { type: 'exercise-header', label: 'Exercice', desc: 'En-tête numéroté avec points', group: 'Structure' },
+  { type: 'heading', label: 'Titre', desc: 'Titre de section H1/H2/H3', group: 'Structure' },
+  { type: 'divider', label: 'Séparateur', desc: 'Ligne de séparation', group: 'Structure' },
+  { type: 'text', label: 'Texte', desc: 'Paragraphe de texte libre', group: 'Contenu' },
+  { type: 'math', label: 'Formule', desc: 'Expression LaTeX (fractions…)', group: 'Contenu' },
+  { type: 'numbered-list', label: 'Liste n°', desc: 'Liste avec numéros', group: 'Contenu' },
+  { type: 'bullet-list', label: 'Liste •', desc: 'Liste avec puces', group: 'Contenu' },
+  { type: 'image', label: 'Image', desc: 'Image depuis URL', group: 'Contenu' },
+  { type: 'exercise-item', label: 'Question', desc: 'Zone question + réponse', group: 'Exercices' },
+  { type: 'qcm', label: 'QCM', desc: 'Choix multiples', group: 'Exercices' },
+  { type: 'true-false', label: 'Vrai/Faux', desc: 'Affirmations à cocher', group: 'Exercices' },
+  { type: 'fill-blank', label: 'À trous', desc: 'Texte avec espaces', group: 'Exercices' },
+  { type: 'matching', label: 'Relier', desc: 'Relier deux colonnes', group: 'Exercices' },
+  { type: 'blank-lines', label: 'Lignes', desc: 'Lignes pour écrire', group: 'Exercices' },
+  { type: 'rubric', label: 'Grille', desc: 'Critères avec niveaux', group: 'Exercices' },
+  { type: 'table', label: 'Tableau', desc: 'Lignes/colonnes', group: 'Mise en page' },
+  { type: 'columns', label: 'Colonnes', desc: 'Texte en colonnes', group: 'Mise en page' },
+  { type: 'shape', label: 'Formes', desc: 'Formes géométriques', group: 'Mise en page' },
 ]
 
 const GROUPS = ['Structure', 'Contenu', 'Exercices', 'Mise en page']
@@ -548,19 +577,24 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
                         <div key={group} className="mb-4 last:mb-0">
                           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{group}</p>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                            {BLOCK_MENU.filter(m => m.group === group).map(item => (
-                              <button
-                                key={item.type}
-                                onClick={() => addBlock(item.type)}
-                                className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-indigo-50 text-left transition group"
-                              >
-                                <span className="w-7 h-7 bg-gray-100 group-hover:bg-indigo-100 rounded flex items-center justify-center text-xs font-bold text-gray-600 group-hover:text-indigo-700 flex-shrink-0">{item.icon}</span>
-                                <div>
-                                  <div className="text-xs font-medium text-gray-800 leading-tight">{item.label}</div>
-                                  <div className="text-xs text-gray-400 leading-tight hidden sm:block">{item.desc}</div>
-                                </div>
-                              </button>
-                            ))}
+                            {BLOCK_MENU.filter(m => m.group === group).map(item => {
+                              const colors = GROUP_COLORS[group] || GROUP_COLORS['Contenu']
+                              return (
+                                <button
+                                  key={item.type}
+                                  onClick={() => addBlock(item.type)}
+                                  className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-gray-50 text-left transition group"
+                                >
+                                  <span className={`w-7 h-7 ${colors.bg} rounded-lg flex items-center justify-center flex-shrink-0 transition p-1.5 ${colors.icon}`}>
+                                    {BLOCK_ICONS[item.type] || <svg viewBox="0 0 20 20" fill="currentColor"><rect x="3" y="3" width="14" height="14" rx="2"/></svg>}
+                                  </span>
+                                  <div>
+                                    <div className="text-xs font-medium text-gray-800 leading-tight">{item.label}</div>
+                                    <div className="text-[10px] text-gray-400 leading-tight hidden sm:block">{item.desc}</div>
+                                  </div>
+                                </button>
+                              )
+                            })}
                           </div>
                         </div>
                       ))}
