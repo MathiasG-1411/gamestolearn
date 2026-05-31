@@ -4,9 +4,10 @@ interface Props {
   meta: WorksheetMeta
   editMode?: boolean
   onChange?: (meta: WorksheetMeta) => void
+  onClose?: () => void
 }
 
-export default function WorksheetHeader({ meta, editMode = false, onChange }: Props) {
+export default function WorksheetHeader({ meta, editMode = false, onChange, onClose }: Props) {
   const update = (patch: Partial<WorksheetMeta>) => onChange?.({ ...meta, ...patch })
 
   if (!editMode) {
@@ -55,8 +56,17 @@ export default function WorksheetHeader({ meta, editMode = false, onChange }: Pr
   const inputCls = 'border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-300'
 
   return (
-    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4 space-y-3">
-      <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">En-tête de la fiche</h3>
+    // stopPropagation prevents clicks inside the form from bubbling to the parent toggle
+    <div
+      className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4 space-y-3"
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">En-tête de la fiche</h3>
+        {onClose && (
+          <button type="button" onClick={onClose} className="text-indigo-400 hover:text-indigo-700 text-sm px-2 py-0.5 rounded hover:bg-indigo-100">✕ Fermer</button>
+        )}
+      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-gray-500">Titre</span>

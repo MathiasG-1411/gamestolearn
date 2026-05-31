@@ -1,13 +1,54 @@
-import type { Block } from '../types/worksheet'
+import type { Block, BaseBlock, RubricBlock } from '../types/worksheet'
 import MathRenderer from './MathRenderer'
 import ShapeRenderer from './ShapeRenderer'
 
 interface Props {
   block: Block
   editMode?: boolean
+  correctionMode?: boolean
 }
 
-export default function BlockRenderer({ block, editMode = false }: Props) {
+function blockContainerStyle(block: BaseBlock): React.CSSProperties {
+  const style: React.CSSProperties = {}
+  if (block.bg) style.backgroundColor = block.bg
+  if (block.borderColor) {
+    const w = block.borderWidth === 'thick' ? '3px' : block.borderWidth === 'medium' ? '2px' : '1px'
+    style.border = `${w} ${block.borderStyle || 'solid'} ${block.borderColor}`
+  }
+  if (block.fontFamily) style.fontFamily = block.fontFamily
+  return style
+}
+
+function blockContainerClass(block: BaseBlock): string {
+  const pad = block.padding === 'lg' ? 'p-6' : block.padding === 'md' ? 'p-4' : block.padding === 'sm' ? 'p-2' : ''
+  const rad = block.rounded === 'lg' ? 'rounded-xl' : block.rounded === 'md' ? 'rounded-lg' : block.rounded === 'sm' ? 'rounded' : ''
+  return [pad, rad].filter(Boolean).join(' ')
+}
+
+function BlockWrapper({ block, children }: { block: Block; children: React.ReactNode }) {
+  const style = blockContainerStyle(block)
+  const cls = blockContainerClass(block)
+  const hasWrapper = Object.keys(style).length > 0 || cls
+  if (!hasWrapper) return <>{children}</>
+  return <div style={style} className={cls}>{children}</div>
+}
+
+export default function BlockRenderer({ block, editMode = false, correctionMode = false }: Props) {
+  const inner = renderInner(block, editMode)
+  return (
+    <BlockWrapper block={block}>
+      {inner}
+      {correctionMode && block.correction && (
+        <div className="mt-2 px-3 py-2 bg-green-50 border-l-4 border-green-500 rounded-r print:bg-white print:border-green-600">
+          <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">✓ Corrigé : </span>
+          <span className="text-sm text-green-800 whitespace-pre-wrap">{block.correction}</span>
+        </div>
+      )}
+    </BlockWrapper>
+  )
+}
+
+function renderInner(block: Block, editMode: boolean) {
   switch (block.type) {
     case 'heading': {
       const Tag = `h${block.level}` as 'h1' | 'h2' | 'h3'
@@ -15,7 +56,7 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
       return (
         <Tag
           className={`${sizes[block.level]} my-2 text-gray-900`}
-          style={{ textAlign: block.align || 'left' }}
+          style={{ textAlign: block.align || 'left', fontFamily: block.fontFamily || undefined }}
         >
           {block.content || <span className="text-gray-300 italic">Titre…</span>}
         </Tag>
@@ -30,7 +71,7 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
             block.fontSize === 'lg' ? 'text-lg' :
             block.fontSize === 'xl' ? 'text-xl' : 'text-base'
           } ${block.bold ? 'font-bold' : ''} ${block.italic ? 'italic' : ''} ${block.underline ? 'underline' : ''}`}
-          style={{ textAlign: block.align || 'left' }}
+          style={{ textAlign: block.align || 'left', fontFamily: block.fontFamily || undefined }}
         >
           {block.content || (editMode ? <span className="text-gray-300 italic">Texte…</span> : '')}
         </p>
@@ -85,7 +126,7 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
     case 'columns':
       return (
         <div
-          className={`my-2 grid gap-${block.gap === 'sm' ? '2' : block.gap === 'lg' ? '8' : '4'}`}
+          className="my-2 grid gap-4"
           style={{ gridTemplateColumns: `repeat(${block.columns}, 1fr)` }}
         >
           {block.content.map((col, i) => (
@@ -102,7 +143,7 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
       const count = block.count || 1
       const items = Array.from({ length: count }, (_, i) => i)
       return (
-        <div className={`my-2 flex flex-wrap gap-2 ${block.arrangement === 'grid' ? 'flex-wrap' : ''}`}>
+        <div className="my-2 flex flex-wrap gap-2">
           {items.map(i => (
             <div key={i} className="flex flex-col items-center gap-1">
               <ShapeRenderer variant={block.variant} color={block.color} size={block.size} />
@@ -128,15 +169,8 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
       )
 
     case 'divider': {
-      const styles = {
-        solid: 'border-solid',
-        dashed: 'border-dashed',
-        dotted: 'border-dotted',
-        double: 'border-double border-b-4',
-      }
-      return (
-        <div className={`my-3 border-t border-gray-400 ${styles[block.style || 'solid']}`} />
-      )
+      const styles = { solid: 'border-solid', dashed: 'border-dashed', dotted: 'border-dotted', double: 'border-double border-b-4' }
+      return <div className={`my-3 border-t border-gray-400 ${styles[block.style || 'solid']}`} />
     }
 
     case 'exercise-header': {
@@ -195,11 +229,7 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
       return (
         <div className="my-2 space-y-4">
           {lines.map(i => (
-            <div
-              key={i}
-              className={`w-full h-px ${block.lined ? 'border-b border-gray-400' : 'border-b border-transparent'}`}
-              style={{ marginBottom: '1.5rem' }}
-            />
+            <div key={i} className={`w-full ${block.lined ? 'border-b border-gray-400' : ''}`} style={{ minHeight: '1.8rem' }} />
           ))}
         </div>
       )
@@ -222,6 +252,265 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
           ))}
         </ul>
       )
+
+    case 'qcm': {
+      const letters = ['A', 'B', 'C', 'D', 'E', 'F']
+      return (
+        <div className="my-2">
+          <p className="font-medium text-gray-900 mb-2">{block.question || (editMode ? <span className="text-gray-300 italic">Question…</span> : '')}</p>
+          <div className="space-y-1.5 pl-2">
+            {block.options.map((opt, i) => (
+              <div key={i} className="flex items-center gap-2">
+                {block.style === 'letters' ? (
+                  <span className="w-6 h-6 border-2 border-gray-400 rounded-full flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
+                    {letters[i]}
+                  </span>
+                ) : (
+                  <span className="w-5 h-5 border-2 border-gray-400 rounded-full flex-shrink-0" />
+                )}
+                <span className="text-gray-800">{opt || <span className="text-gray-300 italic">Option {i + 1}…</span>}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    case 'true-false':
+      return (
+        <div className="my-2">
+          {block.instruction && <p className="text-sm text-gray-600 mb-2 italic">{block.instruction}</p>}
+          <div className="space-y-2">
+            {block.statements.map((stmt, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <span className="flex-1 text-gray-800">{stmt}</span>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <label className="flex items-center gap-1 text-sm">
+                    <span className="w-5 h-5 border-2 border-gray-400 rounded-full inline-block" />
+                    <span className="text-green-700 font-medium">Vrai</span>
+                  </label>
+                  <label className="flex items-center gap-1 text-sm">
+                    <span className="w-5 h-5 border-2 border-gray-400 rounded-full inline-block" />
+                    <span className="text-red-600 font-medium">Faux</span>
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+
+    case 'fill-blank': {
+      const parts = block.text.split('___')
+      return (
+        <div className="my-2">
+          {block.instruction && <p className="text-sm text-gray-600 mb-2 italic">{block.instruction}</p>}
+          <p className="text-gray-800 leading-loose">
+            {parts.map((part, i) => (
+              <span key={i}>
+                {part}
+                {i < parts.length - 1 && (
+                  <span className="inline-block border-b-2 border-gray-500 min-w-[80px] mx-1">&nbsp;</span>
+                )}
+              </span>
+            ))}
+          </p>
+          {block.showWordBank && block.wordBank && block.wordBank.length > 0 && (
+            <div className="mt-3 p-2 bg-gray-50 border border-gray-200 rounded">
+              <span className="text-xs font-semibold text-gray-500 uppercase mr-2">Mots :</span>
+              {block.wordBank.map((w, i) => (
+                <span key={i} className="inline-block mx-1 px-2 py-0.5 bg-white border border-gray-300 rounded text-sm">{w}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    case 'matching':
+      return (
+        <div className="my-2">
+          {block.instruction && <p className="text-sm text-gray-600 mb-2 italic">{block.instruction}</p>}
+          <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+            <div className="space-y-2">
+              {block.leftItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="w-5 h-5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                  <span className="flex-1 border-b border-gray-300 pb-0.5 text-gray-800">{item}</span>
+                  <span className="text-gray-300">···</span>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              {block.rightItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-gray-300">···</span>
+                  <span className="flex-1 border-b border-gray-300 pb-0.5 text-gray-800">{item}</span>
+                  <span className="w-5 h-5 bg-gray-100 text-gray-500 rounded text-xs font-bold flex items-center justify-center flex-shrink-0">
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+
+    case 'exercise-item': {
+      const b = block
+
+      // Question zone
+      const questionZone = (() => {
+        const text = b.questionText || (editMode ? '(Question…)' : '')
+        const base = 'text-gray-900 text-sm leading-relaxed'
+        switch (b.questionStyle) {
+          case 'shaded':
+            return (
+              <div className="px-3 py-2 rounded" style={{ backgroundColor: b.questionBg || '#f1f5f9' }}>
+                <p className={base}>{text}</p>
+              </div>
+            )
+          case 'boxed':
+            return (
+              <div className="px-3 py-2 rounded border-2" style={{ borderColor: b.questionBorderColor || '#4f46e5', backgroundColor: b.questionBg || 'transparent' }}>
+                <p className={base}>{text}</p>
+              </div>
+            )
+          default:
+            return <p className={base}>{text}</p>
+        }
+      })()
+
+      // Answer zone
+      const answerZone = (() => {
+        const boxHeightPx = { sm: 48, md: 80, lg: 120, xl: 180 }[b.boxHeight]
+        const letters = ['A', 'B', 'C', 'D', 'E', 'F']
+
+        switch (b.answerStyle) {
+          case 'lines':
+            return (
+              <div className="mt-2 space-y-5">
+                {Array.from({ length: b.lineCount }).map((_, i) => (
+                  <div key={i} className="border-b border-gray-400 w-full" style={{ minHeight: '1px' }} />
+                ))}
+              </div>
+            )
+          case 'dotted-lines':
+            return (
+              <div className="mt-2 space-y-5">
+                {Array.from({ length: b.lineCount }).map((_, i) => (
+                  <div key={i} className="border-b border-dashed border-gray-400 w-full" style={{ minHeight: '1px' }} />
+                ))}
+              </div>
+            )
+          case 'box':
+            return (
+              <div className="mt-2 border-2 border-gray-400 rounded w-full" style={{ height: boxHeightPx }} />
+            )
+          case 'grid':
+            return (
+              <div
+                className="mt-2 border-2 border-gray-400 rounded w-full"
+                style={{
+                  height: boxHeightPx,
+                  backgroundImage:
+                    'linear-gradient(#d1d5db 1px, transparent 1px), linear-gradient(90deg, #d1d5db 1px, transparent 1px)',
+                  backgroundSize: '10mm 10mm',
+                }}
+              />
+            )
+          case 'qcm': {
+            const opts = b.qcmOptions.filter(o => o.trim())
+            return (
+              <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1.5">
+                {opts.map((opt, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    {b.qcmOptionStyle === 'letters' ? (
+                      <span className="w-6 h-6 border-2 border-gray-400 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">{letters[i]}</span>
+                    ) : (
+                      <span className="w-5 h-5 border-2 border-gray-400 rounded-full flex-shrink-0" />
+                    )}
+                    <span className="text-sm text-gray-800">{opt}</span>
+                  </div>
+                ))}
+              </div>
+            )
+          }
+          case 'true-false':
+            return (
+              <div className="mt-2 flex items-center gap-6">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-5 h-5 border-2 border-gray-400 rounded-full" />
+                  <span className="text-sm font-medium text-green-700">Vrai</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-5 h-5 border-2 border-gray-400 rounded-full" />
+                  <span className="text-sm font-medium text-red-600">Faux</span>
+                </div>
+              </div>
+            )
+          case 'short':
+            return (
+              <div className="mt-2 border-2 border-gray-400 rounded px-2 py-1 min-h-[2rem] w-full max-w-xs" />
+            )
+          case 'none':
+          default:
+            return null
+        }
+      })()
+
+      if (b.layout === 'side-by-side') {
+        return (
+          <div className="my-2 flex gap-4 items-start">
+            <div className="flex-1">{questionZone}</div>
+            <div className="flex-1">{answerZone}</div>
+          </div>
+        )
+      }
+
+      return (
+        <div className="my-2">
+          {questionZone}
+          {answerZone}
+        </div>
+      )
+    }
+
+    case 'rubric': {
+      const b = block as RubricBlock
+      return (
+        <div className="my-2 overflow-x-auto">
+          {b.title && <p className="font-semibold text-gray-800 mb-2">{b.title}</p>}
+          <table className="border-collapse w-full text-sm">
+            <thead>
+              <tr>
+                <th className="border border-gray-300 px-3 py-2 bg-gray-100 text-left font-semibold text-gray-700 min-w-[120px]">Critère</th>
+                {b.levels.map((lvl, li) => (
+                  <th key={li} className="border border-gray-300 px-3 py-2 bg-indigo-50 text-center font-semibold text-indigo-800">
+                    {lvl}
+                    {b.showPoints && b.levelPoints?.[li] !== undefined && (
+                      <span className="block text-xs font-normal text-indigo-500">{b.levelPoints[li]} pt{(b.levelPoints[li] ?? 0) > 1 ? 's' : ''}</span>
+                    )}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {b.criteria.map((crit, ci) => (
+                <tr key={ci} className={ci % 2 === 0 ? '' : 'bg-gray-50'}>
+                  <td className="border border-gray-300 px-3 py-2 font-medium text-gray-800">{crit.name}</td>
+                  {b.levels.map((_, li) => (
+                    <td key={li} className="border border-gray-300 px-3 py-2 text-gray-600 text-xs">
+                      {crit.descriptions[li] || ''}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
 
     default:
       return null
