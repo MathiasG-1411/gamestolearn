@@ -657,7 +657,10 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
             {sidebarCollapsed ? '☰' : '⊲'}
           </button>
         )}
-        <button onClick={onBack} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 flex-shrink-0" title="Retour">←</button>
+        <button onClick={onBack} className="flex items-center gap-1.5 pl-1 pr-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 flex-shrink-0 transition" title="Retour à l'accueil">
+          <img src="/favicon.svg" alt="" className="w-7 h-7 rounded-lg" />
+          <span className="text-sm hidden sm:inline">←</span>
+        </button>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
             {worksheet.meta.title}

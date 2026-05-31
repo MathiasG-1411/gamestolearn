@@ -262,7 +262,7 @@ export default function TemplateGallery({ worksheets, onSelect, onDelete, onDupl
 
           {/* Logo */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-base">F</div>
+            <img src="/favicon.svg" alt="FichesPro" className="w-9 h-9 rounded-xl" />
             <div className="hidden sm:block">
               <span className="text-base font-bold text-gray-900 dark:text-gray-100">FichesPro</span>
               <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">Créateur de fiches</span>
