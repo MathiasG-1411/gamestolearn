@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { Worksheet, Block, BlockType } from '../types/worksheet'
 import { saveToBank } from '../utils/storage'
@@ -10,12 +10,16 @@ import QuestionBank from './QuestionBank'
 import PresentationMode from './PresentationMode'
 import AIGenerator from './AIGenerator'
 import { printWorksheet } from '../utils/export'
+import { exportPDF } from '../utils/export-pdf'
+import { exportDOCX } from '../utils/export-docx'
 
 interface Props {
   worksheet: Worksheet
   onChange: (ws: Worksheet) => void
   onBack: () => void
   onDifferentiate: (ws: Worksheet) => void
+  onToggleDark?: () => void
+  darkMode?: boolean
 }
 
 const BLOCK_MENU: { type: BlockType; label: string; icon: string; desc: string; group: string }[] = [
@@ -73,7 +77,7 @@ function createDefaultBlock(type: BlockType): Block {
   }
 }
 
-export default function WorksheetEditor({ worksheet, onChange, onBack, onDifferentiate }: Props) {
+export default function WorksheetEditor({ worksheet, onChange, onBack, onDifferentiate, onToggleDark, darkMode }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
@@ -83,6 +87,68 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
   const [showPresentation, setShowPresentation] = useState(false)
   const [showAI, setShowAI] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [showPageBorder, setShowPageBorder] = useState(false)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [exportingPDF, setExportingPDF] = useState(false)
+  const [exportingDOCX, setExportingDOCX] = useState(false)
+
+  const handleExportPDF = async () => {
+    setExportingPDF(true)
+    setShowMoreMenu(false)
+    try { await exportPDF(worksheet) } catch (e) { showToast('Erreur export PDF') }
+    setExportingPDF(false)
+  }
+
+  const handleExportDOCX = async () => {
+    setExportingDOCX(true)
+    setShowMoreMenu(false)
+    try { await exportDOCX(worksheet) } catch (e) { showToast('Erreur export DOCX') }
+    setExportingDOCX(false)
+  }
+  const moreMenuRef = useRef<HTMLDivElement>(null)
+
+  // Sidebar state — collapsed by default on mobile
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('fichespro_sidebar_collapsed')
+      if (stored !== null) return stored === 'true'
+      return typeof window !== 'undefined' && window.innerWidth < 768
+    } catch { return true }
+  })
+  const [sidebarTab, setSidebarTab] = useState<'palette' | 'nav'>('palette')
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(v => {
+      const next = !v
+      try { localStorage.setItem('fichespro_sidebar_collapsed', String(next)) } catch { /* ignore */ }
+      return next
+    })
+  }
+
+  // Close ⋮ menu on outside click
+  useEffect(() => {
+    if (!showMoreMenu) return
+    const handler = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) setShowMoreMenu(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showMoreMenu])
+
+  // Feature 3: Save indicator
+  const [savedBadge, setSavedBadge] = useState(false)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Feature 6: Undo/Redo history
+  const historyRef = useRef<Block[][]>([worksheet.blocks])
+  const historyIndexRef = useRef(0)
+  const [, forceRender] = useState(0)
+  const skipHistoryPushRef = useRef(false)
+
+  // Feature 7: Drag and drop
+  const dragIndexRef = useRef<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -152,6 +218,41 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
     }
   }
 
+  // Total points across exercise headers
+  const totalPoints = worksheet.blocks.reduce((sum, b) => {
+    if (b.type === 'exercise-header' && typeof b.points === 'number') return sum + b.points
+    return sum
+  }, 0)
+
+  const copyPoints = async () => {
+    const lines = worksheet.blocks
+      .filter(b => b.type === 'exercise-header' && typeof (b as { points?: number }).points === 'number')
+      .map(b => `Exercice ${(b as { number?: number }).number ?? ''}: ${(b as { points?: number }).points}pt`)
+    const text = `Total: ${totalPoints}pt\n` + lines.join('\n')
+    try { await navigator.clipboard.writeText(text) } catch { /* ignore */ }
+    showToast(`📋 Points copiés (${totalPoints}pt)`)
+  }
+
+  // Undo / Redo
+  const canUndo = historyIndexRef.current > 0
+  const canRedo = historyIndexRef.current < historyRef.current.length - 1
+
+  const undo = () => {
+    if (!canUndo) return
+    historyIndexRef.current -= 1
+    skipHistoryPushRef.current = true
+    onChange({ ...worksheet, blocks: historyRef.current[historyIndexRef.current] })
+    forceRender(n => n + 1)
+  }
+
+  const redo = () => {
+    if (!canRedo) return
+    historyIndexRef.current += 1
+    skipHistoryPushRef.current = true
+    onChange({ ...worksheet, blocks: historyRef.current[historyIndexRef.current] })
+    forceRender(n => n + 1)
+  }
+
   const selected = worksheet.blocks.find(b => b.id === selectedId)
 
   return (
@@ -174,28 +275,74 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
           <p className="text-xs text-gray-400">{worksheet.meta.subject} · {worksheet.meta.level}</p>
         </div>
 
-        <div className="flex items-center gap-1 flex-wrap">
-          <button onClick={() => setShowAI(true)} className="px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg text-xs font-bold transition shadow-sm" title="Générer avec l'IA">✨ IA</button>
-          <button onClick={() => setShowBank(!showBank)} className="px-2 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-medium transition border border-amber-200" title="Banque de questions">📚</button>
-          <button onClick={() => setShowPresentation(true)} className="px-2 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-medium transition border border-purple-200" title="Mode présentation">🎯</button>
-          <button onClick={shareWorksheet} className="px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition border border-blue-200" title="Partager par lien">📤</button>
-          <button onClick={() => onDifferentiate(worksheet)} className="px-2 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg text-xs font-medium transition border border-teal-200" title="Créer une version différenciée">⊕ Version B</button>
+        {/* Always-visible: saved, points, undo, redo, preview */}
+        {savedBadge && <span className="text-xs text-gray-400 dark:text-gray-500 px-1 select-none hidden sm:inline">✓</span>}
+        {totalPoints > 0 && (
+          <button onClick={copyPoints} className="px-2 py-1 bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-700 flex-shrink-0 hidden sm:flex" title="Total des points">
+            {totalPoints}pt
+          </button>
+        )}
+        <button onClick={undo} disabled={!canUndo} className="p-2 rounded-lg disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition flex-shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center" title="Annuler (Ctrl+Z)">↩</button>
+        <button onClick={redo} disabled={!canRedo} className="p-2 rounded-lg disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition flex-shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center" title="Rétablir (Ctrl+Y)">↪</button>
+
+        <button
+          onClick={() => setPreviewMode(!previewMode)}
+          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex-shrink-0 ${previewMode ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+        >
+          {previewMode ? '✏️' : '👁'}
+        </button>
+
+        {/* Export buttons — visible on desktop */}
+        <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
+          <button onClick={printWorksheet} className="px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition flex items-center gap-1" title="Imprimer">
+            🖨 <span className="hidden md:inline">Imprimer</span>
+          </button>
+          <button onClick={handleExportPDF} disabled={exportingPDF} className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white rounded-lg text-xs font-medium transition flex items-center gap-1" title="Exporter en PDF">
+            {exportingPDF ? '⏳' : '📄'} <span className="hidden md:inline">PDF</span>
+          </button>
+          <button onClick={handleExportDOCX} disabled={exportingDOCX} className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg text-xs font-medium transition flex items-center gap-1" title="Exporter en Word (.docx)">
+            {exportingDOCX ? '⏳' : 'W'} <span className="hidden md:inline">Word</span>
+          </button>
+        </div>
+
+        {/* Desktop extra buttons */}
+        {!previewMode && (
+          <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
+            <button onClick={() => setShowAI(true)} className="px-2.5 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg text-xs font-bold transition shadow-sm">✨ IA</button>
+            <button onClick={() => setShowBank(!showBank)} className="p-2 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition" title="Banque">📚</button>
+            <button onClick={() => setShowPresentation(true)} className="p-2 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition" title="Présentation">🎯</button>
+            <button onClick={shareWorksheet} className="p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition" title="Partager">📤</button>
+            <button onClick={() => onDifferentiate(worksheet)} className="px-2 py-1.5 text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/50 rounded-lg text-xs font-medium transition border border-teal-200 dark:border-teal-700" title="Version différenciée">⊕ B</button>
+            <button onClick={() => setCorrectionMode(!correctionMode)} className={`px-2 py-1.5 rounded-lg text-xs font-medium transition border ${correctionMode ? 'bg-green-600 text-white border-green-600' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-700 hover:bg-green-100'}`}>✓</button>
+            <button onClick={() => setShowPageBorder(true)} className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Cadre de page">📄</button>
+            {onToggleDark && <button onClick={onToggleDark} className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">{darkMode ? '☀️' : '🌙'}</button>}
+          </div>
+        )}
+
+        {/* Mobile ⋮ overflow menu */}
+        <div ref={moreMenuRef} className="relative sm:hidden flex-shrink-0">
           <button
-            onClick={() => setCorrectionMode(!correctionMode)}
-            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition border ${correctionMode ? 'bg-green-600 text-white border-green-600' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}
-            title="Mode corrigé"
-          >
-            {correctionMode ? '✓ Corrigé' : '✓ Corrigé'}
-          </button>
-          <button
-            onClick={() => setPreviewMode(!previewMode)}
-            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition border ${previewMode ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'}`}
-          >
-            {previewMode ? '✏️' : '👁'}
-          </button>
-          <button onClick={printWorksheet} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition">
-            🖨 Imprimer
-          </button>
+            onClick={() => setShowMoreMenu(v => !v)}
+            className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition min-w-[36px] min-h-[36px] flex items-center justify-center font-bold text-lg"
+          >⋮</button>
+          {showMoreMenu && (
+            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 z-50 min-w-[200px]" onClick={() => setShowMoreMenu(false)}>
+              <button onClick={printWorksheet} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">🖨 Imprimer</button>
+              <button onClick={handleExportPDF} disabled={exportingPDF} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-60">📄 {exportingPDF ? 'Export PDF en cours…' : 'Exporter en PDF'}</button>
+              <button onClick={handleExportDOCX} disabled={exportingDOCX} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-60">📝 {exportingDOCX ? 'Export Word en cours…' : 'Exporter en Word (.docx)'}</button>
+              <button onClick={() => setShowAI(true)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-medium">✨ Générer avec l'IA</button>
+              <button onClick={() => setShowBank(!showBank)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">📚 Banque de questions</button>
+              <button onClick={() => setShowPresentation(true)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">🎯 Mode présentation</button>
+              <button onClick={shareWorksheet} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">📤 Partager par lien</button>
+              <button onClick={() => onDifferentiate(worksheet)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">⊕ Créer une version B</button>
+              <button onClick={() => setCorrectionMode(!correctionMode)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                {correctionMode ? '✅ Masquer le corrigé' : '✓ Afficher le corrigé'}
+              </button>
+              <button onClick={() => setShowPageBorder(true)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">📄 Cadre de page</button>
+              {totalPoints > 0 && <button onClick={copyPoints} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">🏅 Copier les points ({totalPoints}pt)</button>}
+              {onToggleDark && <button onClick={onToggleDark} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">{darkMode ? '☀️ Mode clair' : '🌙 Mode sombre'}</button>}
+            </div>
+          )}
         </div>
       </div>
 
