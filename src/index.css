@@ -29,6 +29,12 @@
   width: 100%;
 }
 
+/* Cadre de page — caché sur écran, affiché en impression via position:fixed */
+.page-border-overlay {
+  display: none;
+  pointer-events: none;
+}
+
 /* Print styles */
 @media print {
   .print\:hidden { display: none !important; }
@@ -41,7 +47,7 @@
   #worksheet-print {
     box-shadow: none !important;
     border-radius: 0 !important;
-    padding: 0 !important;
+    border: none !important;   /* le cadre est géré par .page-border-overlay */
     margin: 0 !important;
     min-height: auto !important;
   }
@@ -53,6 +59,17 @@
 
   .katex-display {
     margin: 0.5em 0;
+  }
+
+  /* ── Cadre répété sur chaque page ───────────────────────────── */
+  /* position:fixed en impression = se répète sur chaque page imprimée */
+  .page-border-overlay {
+    display: block;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   /* ── Gestion des sauts de page ─────────────────────────────── */

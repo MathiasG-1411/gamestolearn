@@ -638,19 +638,30 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
   const canRedo = historyIndexRef.current < historyRef.current.length - 1
 
   // Build page border style
-  const borderW = worksheet.meta.pageBorderWidth ?? 0
+  const borderW = Number(worksheet.meta.pageBorderWidth ?? 0)
   const borderColor = worksheet.meta.pageBorderColor ?? ''
   const borderStyle = worksheet.meta.pageBorderStyle ?? 'solid'
-  const borderOffset = worksheet.meta.pageBorderOffset ?? 8
-  const hasBorder = borderW > 0 && borderColor
+  const borderOffset = Number(worksheet.meta.pageBorderOffset ?? 8)
+  const hasBorder = borderW > 0 && !!borderColor
 
+  // Screen: border drawn on the container (single-page view looks fine)
+  // Print:  border drawn by .page-border-overlay (position:fixed → repeats on every page)
   const printAreaStyle: React.CSSProperties = hasBorder
-    ? {
-        border: `${borderW}mm ${borderStyle} ${borderColor}`,
-        padding: `${borderOffset}mm`,
-        boxSizing: 'border-box',
-      }
+    ? { padding: `${borderOffset + borderW}mm`, boxSizing: 'border-box' as const }
     : {}
+
+  // Injected <style> overrides for the print overlay (values come from controlled inputs — safe)
+  const borderPrintCSS = hasBorder
+    ? `@media print {
+        .page-border-overlay {
+          top: ${borderOffset}mm;
+          left: ${borderOffset}mm;
+          right: ${borderOffset}mm;
+          bottom: ${borderOffset}mm;
+          border: ${borderW}mm ${borderStyle} ${borderColor};
+        }
+      }`
+    : ''
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
@@ -768,11 +779,25 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
         {/* Main canvas */}
         <div className="flex-1 overflow-y-auto p-4">
           <div className="max-w-[210mm] mx-auto">
+            {/* Inject print-specific overlay positioning */}
+            {hasBorder && <style dangerouslySetInnerHTML={{ __html: borderPrintCSS }} />}
+
             <div
               id="worksheet-print"
-              className="bg-white shadow-lg rounded-lg min-h-[297mm]"
-              style={hasBorder ? { ...printAreaStyle, padding: `${borderOffset}mm` } : { padding: '2rem' }}
+              className="bg-white shadow-lg rounded-lg min-h-[297mm] relative"
+              style={hasBorder ? printAreaStyle : { padding: '2rem' }}
             >
+              {/* Screen: decorative border frame (not repeated on print — overlay handles print) */}
+              {hasBorder && (
+                <div
+                  className="absolute inset-0 rounded-lg pointer-events-none print:hidden"
+                  style={{ border: `${borderW}mm ${borderStyle} ${borderColor}` }}
+                  aria-hidden="true"
+                />
+              )}
+              {/* Print: position:fixed overlay that repeats on every printed page */}
+              {hasBorder && <div className="page-border-overlay" aria-hidden="true" />}
+
               <WorksheetHeader
                 meta={worksheet.meta}
                 editMode={!previewMode && editingHeader}
