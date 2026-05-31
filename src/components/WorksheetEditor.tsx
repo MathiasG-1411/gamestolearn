@@ -8,6 +8,7 @@ import BlockEditor from './BlockEditor'
 import WorksheetHeader from './WorksheetHeader'
 import QuestionBank from './QuestionBank'
 import PresentationMode from './PresentationMode'
+import AIGenerator from './AIGenerator'
 import { printWorksheet } from '../utils/export'
 
 interface Props {
@@ -80,6 +81,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
   const [editingHeader, setEditingHeader] = useState(false)
   const [showBank, setShowBank] = useState(false)
   const [showPresentation, setShowPresentation] = useState(false)
+  const [showAI, setShowAI] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
   const showToast = (msg: string) => {
@@ -173,6 +175,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
         </div>
 
         <div className="flex items-center gap-1 flex-wrap">
+          <button onClick={() => setShowAI(true)} className="px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg text-xs font-bold transition shadow-sm" title="Générer avec l'IA">✨ IA</button>
           <button onClick={() => setShowBank(!showBank)} className="px-2 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-medium transition border border-amber-200" title="Banque de questions">📚</button>
           <button onClick={() => setShowPresentation(true)} className="px-2 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-medium transition border border-purple-200" title="Mode présentation">🎯</button>
           <button onClick={shareWorksheet} className="px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition border border-blue-200" title="Partager par lien">📤</button>
@@ -301,6 +304,22 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
 
       {/* Presentation mode */}
       {showPresentation && <PresentationMode worksheet={worksheet} onClose={() => setShowPresentation(false)} />}
+
+      {/* AI Generator */}
+      {showAI && (
+        <AIGenerator
+          defaultSubject={worksheet.meta.subject}
+          defaultLevel={worksheet.meta.level}
+          onInsert={blocks => {
+            const idx = selectedId ? worksheet.blocks.findIndex(b => b.id === selectedId) + 1 : worksheet.blocks.length
+            const newBlocks = [...worksheet.blocks]
+            newBlocks.splice(idx, 0, ...blocks)
+            updateBlocks(newBlocks)
+            showToast(`✨ ${blocks.length} blocs insérés depuis l'IA`)
+          }}
+          onClose={() => setShowAI(false)}
+        />
+      )}
     </div>
   )
 }
