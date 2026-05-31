@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { Worksheet, Block, BlockType } from '../types/worksheet'
 import { saveToBank } from '../utils/storage'
@@ -42,6 +42,7 @@ const BLOCK_MENU: { type: BlockType; label: string; icon: string; desc: string; 
 ]
 
 const GROUPS = ['Structure', 'Contenu', 'Exercices', 'Mise en page']
+const MAX_HISTORY = 50
 
 function createDefaultBlock(type: BlockType): Block {
   const id = uuidv4()
@@ -75,7 +76,7 @@ function createDefaultBlock(type: BlockType): Block {
   }
 }
 
-export default function WorksheetEditor({ worksheet, onChange, onBack, onDifferentiate }: Props) {
+export default function WorksheetEditor({ worksheet, onChange, onBack, onDifferentiate, darkMode, onToggleDark }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
@@ -86,13 +87,100 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
   const [showAI, setShowAI] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
+  // Feature 3: Save indicator
+  const [savedBadge, setSavedBadge] = useState(false)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Feature 6: Undo/Redo history
+  const historyRef = useRef<Block[][]>([worksheet.blocks])
+  const historyIndexRef = useRef(0)
+  const [, forceRender] = useState(0)
+  const skipHistoryPushRef = useRef(false)
+
+  // Feature 7: Drag and drop
+  const dragIndexRef = useRef<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 2500)
   }
 
-  const updateBlocks = (blocks: Block[]) => onChange({ ...worksheet, blocks, updatedAt: new Date().toISOString() })
-  const updateBlock = (id: string, block: Block) => updateBlocks(worksheet.blocks.map(b => b.id === id ? block : b))
+  const showSavedBadge = useCallback(() => {
+    setSavedBadge(true)
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+    savedTimerRef.current = setTimeout(() => setSavedBadge(false), 2000)
+  }, [])
+
+  const pushHistory = useCallback((blocks: Block[]) => {
+    if (skipHistoryPushRef.current) {
+      skipHistoryPushRef.current = false
+      return
+    }
+    const idx = historyIndexRef.current
+    const newHistory = historyRef.current.slice(0, idx + 1)
+    newHistory.push(blocks)
+    if (newHistory.length > MAX_HISTORY) newHistory.shift()
+    historyRef.current = newHistory
+    historyIndexRef.current = newHistory.length - 1
+    forceRender(n => n + 1)
+  }, [])
+
+  const updateBlocks = useCallback((blocks: Block[]) => {
+    pushHistory(blocks)
+    onChange({ ...worksheet, blocks, updatedAt: new Date().toISOString() })
+    showSavedBadge()
+  }, [onChange, worksheet, pushHistory, showSavedBadge])
+
+  const updateBlock = useCallback((id: string, block: Block) => {
+    updateBlocks(worksheet.blocks.map(b => b.id === id ? block : b))
+  }, [updateBlocks, worksheet.blocks])
+
+  // Feature 6: Undo
+  const undo = useCallback(() => {
+    const idx = historyIndexRef.current
+    if (idx <= 0) return
+    const newIdx = idx - 1
+    skipHistoryPushRef.current = true
+    historyIndexRef.current = newIdx
+    forceRender(n => n + 1)
+    const blocks = historyRef.current[newIdx]
+    onChange({ ...worksheet, blocks, updatedAt: new Date().toISOString() })
+    showSavedBadge()
+  }, [onChange, worksheet, showSavedBadge])
+
+  // Feature 6: Redo
+  const redo = useCallback(() => {
+    const idx = historyIndexRef.current
+    if (idx >= historyRef.current.length - 1) return
+    const newIdx = idx + 1
+    skipHistoryPushRef.current = true
+    historyIndexRef.current = newIdx
+    forceRender(n => n + 1)
+    const blocks = historyRef.current[newIdx]
+    onChange({ ...worksheet, blocks, updatedAt: new Date().toISOString() })
+    showSavedBadge()
+  }, [onChange, worksheet, showSavedBadge])
+
+  // Feature 6: Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+      if (isInput) return
+      const mod = e.ctrlKey || e.metaKey
+      if (mod && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        undo()
+      } else if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault()
+        redo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [undo, redo])
 
   const addBlock = (type: BlockType) => {
     const newBlock = createDefaultBlock(type)
@@ -154,50 +242,146 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
     }
   }
 
+  // Feature 5: Total points
+  const totalPoints = worksheet.blocks
+    .filter(b => b.type === 'exercise-header')
+    .reduce((sum, b) => {
+      const pts = (b as { points?: number }).points
+      return sum + (typeof pts === 'number' ? pts : 0)
+    }, 0)
+
+  const copyPoints = async () => {
+    try {
+      await navigator.clipboard.writeText(`${totalPoints} pts`)
+      showToast(`📋 "${totalPoints} pts" copié !`)
+    } catch { /* ignore */ }
+  }
+
+  // Feature 7: Drag & drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.stopPropagation()
+    dragIndexRef.current = index
+    e.dataTransfer.effectAllowed = 'move'
+    setIsDragging(true)
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragOverIndex !== index) setDragOverIndex(index)
+  }
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault()
+    const dragIndex = dragIndexRef.current
+    if (dragIndex === null || dragIndex === dropIndex) {
+      dragIndexRef.current = null
+      setDragOverIndex(null)
+      setIsDragging(false)
+      return
+    }
+    const blocks = [...worksheet.blocks]
+    const [dragged] = blocks.splice(dragIndex, 1)
+    blocks.splice(dropIndex, 0, dragged)
+    updateBlocks(blocks)
+    dragIndexRef.current = null
+    setDragOverIndex(null)
+    setIsDragging(false)
+  }
+
+  const handleDragEnd = () => {
+    dragIndexRef.current = null
+    setDragOverIndex(null)
+    setIsDragging(false)
+  }
+
   const selected = worksheet.blocks.find(b => b.id === selectedId)
 
+  const canUndo = historyIndexRef.current > 0
+  const canRedo = historyIndexRef.current < historyRef.current.length - 1
+
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg print:hidden">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg print:hidden">
           {toast}
         </div>
       )}
 
       {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-1.5 sticky top-0 z-30 print:hidden flex-wrap">
-        <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 flex-shrink-0" title="Retour">←</button>
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 py-2 flex items-center gap-1.5 sticky top-0 z-30 print:hidden flex-wrap">
+        <button onClick={onBack} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 flex-shrink-0" title="Retour">←</button>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
             {worksheet.meta.title}
-            {worksheet.version && <span className="ml-2 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">Version {worksheet.version}</span>}
+            {worksheet.version && <span className="ml-2 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-full font-medium">Version {worksheet.version}</span>}
           </p>
-          <p className="text-xs text-gray-400">{worksheet.meta.subject} · {worksheet.meta.level}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">{worksheet.meta.subject} · {worksheet.meta.level}</p>
         </div>
 
         <div className="flex items-center gap-1 flex-wrap">
+          {/* Feature 3: Saved badge */}
+          {savedBadge && (
+            <span className="text-xs text-gray-400 dark:text-gray-500 px-1.5 py-1 select-none">✓ Enregistré</span>
+          )}
+
+          {/* Feature 5: Points badge */}
+          {totalPoints > 0 && (
+            <button
+              onClick={copyPoints}
+              className="px-2 py-1 bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition min-h-[28px]"
+              title="Cliquer pour copier le total des points"
+            >
+              {totalPoints} pts
+            </button>
+          )}
+
+          {/* Feature 6: Undo/Redo */}
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            className="p-1.5 rounded-lg text-xs disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition min-w-[28px] min-h-[28px] flex items-center justify-center"
+            title="Annuler (Ctrl+Z)"
+          >↩</button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            className="p-1.5 rounded-lg text-xs disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition min-w-[28px] min-h-[28px] flex items-center justify-center"
+            title="Rétablir (Ctrl+Y)"
+          >↪</button>
+
           <button onClick={() => setShowAI(true)} className="px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg text-xs font-bold transition shadow-sm" title="Générer avec l'IA">✨ IA</button>
-          <button onClick={() => setShowBank(!showBank)} className="px-2 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-medium transition border border-amber-200" title="Banque de questions">📚</button>
-          <button onClick={() => setShowPresentation(true)} className="px-2 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-medium transition border border-purple-200" title="Mode présentation">🎯</button>
-          <button onClick={shareWorksheet} className="px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition border border-blue-200" title="Partager par lien">📤</button>
-          <button onClick={() => onDifferentiate(worksheet)} className="px-2 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg text-xs font-medium transition border border-teal-200" title="Créer une version différenciée">⊕ Version B</button>
+          <button onClick={() => setShowBank(!showBank)} className="px-2 py-1.5 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium transition border border-amber-200 dark:border-amber-700" title="Banque de questions">📚</button>
+          <button onClick={() => setShowPresentation(true)} className="px-2 py-1.5 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 rounded-lg text-xs font-medium transition border border-purple-200 dark:border-purple-700" title="Mode présentation">🎯</button>
+          <button onClick={shareWorksheet} className="px-2 py-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-lg text-xs font-medium transition border border-blue-200 dark:border-blue-700" title="Partager par lien">📤</button>
+          <button onClick={() => onDifferentiate(worksheet)} className="px-2 py-1.5 bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-400 rounded-lg text-xs font-medium transition border border-teal-200 dark:border-teal-700" title="Créer une version différenciée">⊕ Version B</button>
           <button
             onClick={() => setCorrectionMode(!correctionMode)}
-            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition border ${correctionMode ? 'bg-green-600 text-white border-green-600' : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}`}
+            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition border ${correctionMode ? 'bg-green-600 text-white border-green-600' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/50'}`}
             title="Mode corrigé"
           >
             {correctionMode ? '✓ Corrigé' : '✓ Corrigé'}
           </button>
           <button
             onClick={() => setPreviewMode(!previewMode)}
-            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition border ${previewMode ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'}`}
+            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition border ${previewMode ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
           >
             {previewMode ? '✏️' : '👁'}
           </button>
           <button onClick={printWorksheet} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition">
             🖨 Imprimer
           </button>
+          {/* Feature 10: Dark mode toggle */}
+          {onToggleDark && (
+            <button
+              onClick={onToggleDark}
+              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition min-w-[36px] min-h-[36px] flex items-center justify-center"
+              title={darkMode ? 'Mode clair' : 'Mode sombre'}
+            >
+              {darkMode ? '☀️' : '🌙'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -220,26 +404,47 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
               )}
 
               <div className="space-y-1">
-                {worksheet.blocks.map(block => (
-                  <div
-                    key={block.id}
-                    onClick={() => !previewMode && setSelectedId(block.id)}
-                    className={`relative group rounded transition ${!previewMode ? 'hover:ring-2 hover:ring-indigo-200 cursor-pointer' : ''} ${selectedId === block.id && !previewMode ? 'ring-2 ring-indigo-400 bg-indigo-50/30' : ''}`}
-                  >
-                    {!previewMode && (
-                      <div className="absolute -right-1 -top-1 hidden group-hover:flex gap-1 z-10 print:hidden">
-                        <button type="button" onClick={e => { e.stopPropagation(); moveBlock(block.id, -1) }} className="w-6 h-6 bg-white border border-gray-200 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50" title="Monter">↑</button>
-                        <button type="button" onClick={e => { e.stopPropagation(); moveBlock(block.id, 1) }} className="w-6 h-6 bg-white border border-gray-200 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50" title="Descendre">↓</button>
-                        <button type="button" onClick={e => { e.stopPropagation(); duplicateBlock(block.id) }} className="w-6 h-6 bg-white border border-gray-200 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50" title="Dupliquer">⧉</button>
-                        <button type="button" onClick={e => { e.stopPropagation(); saveToBankAndNotify(block) }} className="w-6 h-6 bg-white border border-amber-200 rounded shadow text-xs text-amber-500 flex items-center justify-center hover:bg-amber-50" title="Sauvegarder dans la banque">⭐</button>
-                        <button type="button" onClick={e => { e.stopPropagation(); deleteBlock(block.id) }} className="w-6 h-6 bg-white border border-red-200 rounded shadow text-xs text-red-500 flex items-center justify-center hover:bg-red-50" title="Supprimer">✕</button>
+                {worksheet.blocks.map((block, index) => {
+                  const isDragSource = isDragging && dragIndexRef.current === index
+                  const isDropTarget = dragOverIndex === index && dragIndexRef.current !== null && dragIndexRef.current !== index
+                  return (
+                    <div
+                      key={block.id}
+                      draggable={!previewMode}
+                      onDragStart={e => handleDragStart(e, index)}
+                      onDragOver={e => handleDragOver(e, index)}
+                      onDrop={e => handleDrop(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onClick={() => !previewMode && setSelectedId(block.id)}
+                      className={[
+                        'relative group rounded transition',
+                        !previewMode ? 'hover:ring-2 hover:ring-indigo-200 cursor-pointer' : '',
+                        selectedId === block.id && !previewMode ? 'ring-2 ring-indigo-400 bg-indigo-50/30' : '',
+                        isDragSource ? 'opacity-40' : '',
+                        isDropTarget ? 'border-t-2 border-blue-500' : '',
+                      ].filter(Boolean).join(' ')}
+                    >
+                      {!previewMode && (
+                        <div className="absolute -right-1 -top-1 hidden group-hover:flex gap-1 z-10 print:hidden">
+                          {/* Feature 7: Drag handle */}
+                          <span
+                            className="w-6 h-6 bg-white border border-gray-200 rounded shadow text-xs flex items-center justify-center cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 select-none"
+                            title="Glisser pour réordonner"
+                            onMouseDown={e => e.stopPropagation()}
+                          >⠿</span>
+                          <button type="button" onClick={e => { e.stopPropagation(); moveBlock(block.id, -1) }} className="w-6 h-6 bg-white border border-gray-200 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50" title="Monter">↑</button>
+                          <button type="button" onClick={e => { e.stopPropagation(); moveBlock(block.id, 1) }} className="w-6 h-6 bg-white border border-gray-200 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50" title="Descendre">↓</button>
+                          <button type="button" onClick={e => { e.stopPropagation(); duplicateBlock(block.id) }} className="w-6 h-6 bg-white border border-gray-200 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50" title="Dupliquer">⧉</button>
+                          <button type="button" onClick={e => { e.stopPropagation(); saveToBankAndNotify(block) }} className="w-6 h-6 bg-white border border-amber-200 rounded shadow text-xs text-amber-500 flex items-center justify-center hover:bg-amber-50" title="Sauvegarder dans la banque">⭐</button>
+                          <button type="button" onClick={e => { e.stopPropagation(); deleteBlock(block.id) }} className="w-6 h-6 bg-white border border-red-200 rounded shadow text-xs text-red-500 flex items-center justify-center hover:bg-red-50" title="Supprimer">✕</button>
+                        </div>
+                      )}
+                      <div className="px-1 py-0.5">
+                        <BlockRenderer block={block} editMode={!previewMode} correctionMode={correctionMode} />
                       </div>
-                    )}
-                    <div className="px-1 py-0.5">
-                      <BlockRenderer block={block} editMode={!previewMode} correctionMode={correctionMode} />
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {!previewMode && (
@@ -282,19 +487,19 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
 
         {/* Right panel */}
         {!previewMode && selected && (
-          <div className="w-72 bg-white border-l border-gray-200 overflow-y-auto flex-shrink-0 print:hidden">
+          <div className="w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto flex-shrink-0 print:hidden">
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 text-sm">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
                   {BLOCK_MENU.find(m => m.type === selected.type)?.label || 'Bloc'}
                 </h3>
-                <button onClick={() => setSelectedId(null)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
+                <button onClick={() => setSelectedId(null)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-sm">✕</button>
               </div>
               <BlockEditor block={selected} onChange={block => updateBlock(selected.id, block)} />
-              <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
-                <button onClick={() => duplicateBlock(selected.id)} className="flex-1 text-xs py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200">⧉ Dupliquer</button>
-                <button onClick={() => saveToBankAndNotify(selected)} className="flex-1 text-xs py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200">⭐ Banque</button>
-                <button onClick={() => deleteBlock(selected.id)} className="flex-1 text-xs py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200">✕</button>
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+                <button onClick={() => duplicateBlock(selected.id)} className="flex-1 text-xs py-2 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-600">⧉ Dupliquer</button>
+                <button onClick={() => saveToBankAndNotify(selected)} className="flex-1 text-xs py-2 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-lg border border-amber-200 dark:border-amber-700">⭐ Banque</button>
+                <button onClick={() => deleteBlock(selected.id)} className="flex-1 text-xs py-2 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-700">✕</button>
               </div>
             </div>
           </div>

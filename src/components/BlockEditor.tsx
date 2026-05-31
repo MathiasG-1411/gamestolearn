@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import type { Block, TextBlock, HeadingBlock, MathBlock, TableBlock, ColumnsBlock, ShapeBlock, ExerciseHeaderBlock, BlankLinesBlock, ListBlock, ShapeVariant, QCMBlock, TrueFalseBlock, FillBlankBlock, MatchingBlock, ExerciseItemBlock, AnswerStyle, QuestionStyle, RubricBlock } from '../types/worksheet'
+import { useState, useRef } from 'react'
+import type { Block, TextBlock, HeadingBlock, MathBlock, TableBlock, ColumnsBlock, ShapeBlock, ExerciseHeaderBlock, BlankLinesBlock, ListBlock, ShapeVariant, QCMBlock, TrueFalseBlock, FillBlankBlock, MatchingBlock, ExerciseItemBlock, AnswerStyle, QuestionStyle, RubricBlock, ImageBlock } from '../types/worksheet'
 import { FONT_OPTIONS } from '../types/worksheet'
 import MathRenderer from './MathRenderer'
 
@@ -155,6 +155,94 @@ export default function BlockEditor({ block, onChange }: Props) {
           />
         </label>
       </div>
+    </div>
+  )
+}
+
+// Feature 8: Image block editor with file + camera support
+function ImageBlockEditor({ block: b, update }: { block: ImageBlock; update: (patch: Partial<Block>) => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = evt => {
+      update({ src: evt.target?.result as string })
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  return (
+    <div className="space-y-3">
+      <Field label="URL de l'image">
+        <input
+          className={inputCls}
+          value={b.src}
+          onChange={e => update({ src: e.target.value })}
+          placeholder="https://exemple.com/image.jpg"
+        />
+      </Field>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition min-h-[36px]"
+        >
+          📁 Fichier
+        </button>
+        <button
+          type="button"
+          onClick={() => cameraInputRef.current?.click()}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition min-h-[36px]"
+        >
+          📷 Caméra
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFile}
+        />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleFile}
+        />
+      </div>
+      {b.src && (
+        <div className="border rounded p-2 bg-gray-50">
+          <img src={b.src} alt={b.alt || ''} className="max-w-full max-h-32 object-contain mx-auto rounded" />
+        </div>
+      )}
+      <Field label="Texte alternatif">
+        <input className={inputCls} value={b.alt || ''} onChange={e => update({ alt: e.target.value })} placeholder="Description de l'image…" />
+      </Field>
+      <div className="flex gap-3">
+        <Field label="Largeur">
+          <select className={selectCls} value={b.width || 'full'} onChange={e => update({ width: e.target.value as 'full'|'half'|'third' })}>
+            <option value="full">Pleine largeur</option>
+            <option value="half">Moitié</option>
+            <option value="third">Tiers</option>
+          </select>
+        </Field>
+        <Field label="Alignement">
+          <select className={selectCls} value={b.align || 'center'} onChange={e => update({ align: e.target.value as 'left'|'center'|'right' })}>
+            <option value="left">Gauche</option>
+            <option value="center">Centre</option>
+            <option value="right">Droite</option>
+          </select>
+        </Field>
+      </div>
+      <Field label="Légende (optionnel)">
+        <input className={inputCls} value={b.caption || ''} onChange={e => update({ caption: e.target.value })} placeholder="Figure 1 — …" />
+      </Field>
     </div>
   )
 }
@@ -457,6 +545,9 @@ function renderBlockSpecificEditor(block: Block, update: (patch: Partial<Block>)
         </div>
       )
     }
+
+    case 'image':
+      return <ImageBlockEditor block={block as ImageBlock} update={update} />
 
     case 'divider':
       return (
