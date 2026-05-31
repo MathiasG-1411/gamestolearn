@@ -8,6 +8,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icons/*.png'],
+      workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        // Don't cache the SW or manifest themselves
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/sw\.js$/, /^\/manifest\.webmanifest$/, /^\/registerSW\.js$/],
+      },
       manifest: {
         name: 'FichesPro — Créateur de fiches enseignant',
         short_name: 'FichesPro',
