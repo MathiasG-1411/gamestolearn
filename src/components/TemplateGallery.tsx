@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { Worksheet } from '../types/worksheet'
 import { TEMPLATES } from '../data/templates'
+import ReferentialManager from './ReferentialManager'
 
 interface Props {
   worksheets: Worksheet[]
@@ -53,6 +54,7 @@ export default function TemplateGallery({ worksheets, onSelect, onDelete, onDupl
   const [activeLevel, setActiveLevel] = useState<string | null>(null)
   const [activeVersion, setActiveVersion] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showReferential, setShowReferential] = useState(false)
   const importRef = useRef<HTMLInputElement>(null)
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
@@ -291,6 +293,7 @@ export default function TemplateGallery({ worksheets, onSelect, onDelete, onDupl
             )}
             <button onClick={() => importRef.current?.click()} className="hidden sm:flex p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition items-center justify-center" title="Importer (JSON)">⬆</button>
             <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImportFile} />
+            <button onClick={() => setShowReferential(true)} className="hidden sm:flex p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition items-center justify-center" title="Référentiel CPC FWB">📚</button>
             <button onClick={onToggleDark} className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition flex items-center justify-center" title={darkMode ? 'Mode clair' : 'Mode sombre'}>
               {darkMode ? '☀️' : '🌙'}
             </button>
@@ -512,6 +515,8 @@ export default function TemplateGallery({ worksheets, onSelect, onDelete, onDupl
           </div>
         </main>
       </div>
+
+      {showReferential && <ReferentialManager onClose={() => setShowReferential(false)} />}
     </div>
   )
 }

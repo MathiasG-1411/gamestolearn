@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { Block } from '../types/worksheet'
+import { getAttendusForContext } from './referential'
 
 export type AIProvider = 'gemini' | 'groq'
 
@@ -52,13 +53,10 @@ STRUCTURE DES CPC — TROIS CATÉGORIES D'APPRENTISSAGE :
 3. COMPÉTENCES (C) : mobilisation et intégration de savoirs + savoir-faire dans des situations complexes et inédites.
    → Exemple : "Résoudre un problème de la vie quotidienne en mobilisant les quatre opérations"
 
-ATTENDUS — CONCEPT CENTRAL :
-Les Attendus sont les formulations précises des résultats d'apprentissage à atteindre à la fin de chaque cycle.
-• Ils sont formulés par discipline et par cycle dans les CPC
-• Ils définissent CE QUI EST DEMANDÉ à l'élève : base des évaluations et des bulletins scolaires
-• Chaque attendu appartient à une catégorie : S (Savoir), SF (Savoir-faire) ou C (Compétence)
-• Ils sont organisés par UAA (Unités d'Apprentissage Articulées), ex. "UAA 3.2 — Mathématiques"
-→ Dans CHAQUE exercice généré, tu dois identifier et indiquer l'attendu CPC visé avec son type (S/SF/C) et son code UAA.
+ATTENDUS CPC OFFICIELS :
+Si des attendus officiels sont fournis ci-dessous, utilise UNIQUEMENT ceux de la liste.
+N'invente JAMAIS un attendu. Si aucun attendu ne correspond ou si la liste est vide,
+omets complètement les champs attendu/attenduType/attenduCode dans le JSON.
 
 CYCLES ET NIVEAUX FWB :
 - Cycle 1 (Maternel) : M1, M2, M3 — attendus de fin de M3
@@ -77,7 +75,7 @@ PRINCIPES PÉDAGOGIQUES FWB :
 FORMAT DE SORTIE — IMPÉRATIF :
 Retourne UNIQUEMENT un tableau JSON valide, sans texte avant ni après, sans markdown, sans commentaires.
 Chaque bloc exercice DOIT inclure un champ "correction" avec la réponse attendue complète (sera caché en mode élève).
-Chaque exercise-header DOIT inclure : attendu (texte exact de l'attendu CPC), attenduType (S/SF/C), attenduCode (ex: "UAA 3.2 — Mathématiques").`
+Pour les exercise-header : inclus attendu/attenduType/attenduCode UNIQUEMENT si des attendus officiels sont fournis dans la liste ci-dessous et qu'un attendu pertinent est disponible. N'invente jamais ces champs.`
 
 // ─── User prompt builder ──────────────────────────────────────────────────────
 
@@ -102,8 +100,6 @@ function buildUserPrompt(p: AIGenerateParams): string {
 ${p.additionalInstructions ? `• Instructions spéciales : ${p.additionalInstructions}` : ''}
 
 IMPORTANT :
-- Commence par un bloc exercise-header avec l'attendu CPC exact visé (pas les anciens Socles).
-- L'attendu doit être formulé précisément comme dans les CPC (ex: "Calculer le périmètre et l'aire de figures planes").
 - Produis des énoncés en français correct, adaptés à l'âge, ancrés dans la vie quotidienne belge.
 - Chaque exercice doit inclure une "correction" complète.
 
@@ -252,7 +248,19 @@ function aiBlockToBlock(ai: Record<string, any>): Block | null {
 }
 
 export async function generateExercises(cfg: AIConfig, params: AIGenerateParams): Promise<Block[]> {
-  const userPrompt = buildUserPrompt(params)
+  // Inject official attendus from local referential
+  const officialAttendus = getAttendusForContext(params.subject, params.level)
+  let attendusSection: string
+  if (officialAttendus.length > 0) {
+    const list = officialAttendus.map((a, i) =>
+      `${i + 1}. [${a.type}] ${a.uaa ? `(${a.uaa}) ` : ''}${a.text}`
+    ).join('\n')
+    attendusSection = `\nATTENDUS OFFICIELS DISPONIBLES POUR CE CONTEXTE :\n${list}\n\n→ Pour chaque exercise-header, choisis l'attendu le plus pertinent dans cette liste.\n  Utilise son texte EXACT (sans modification). Indique son type et UAA.`
+  } else {
+    attendusSection = `\nATTENDUS : Aucun attendu officiel n'est disponible pour ce niveau/matière.\nN'inclus PAS de champ attendu dans les exercise-headers générés.`
+  }
+
+  const userPrompt = buildUserPrompt(params) + attendusSection
   const raw = cfg.provider === 'gemini'
     ? await callGemini(cfg.apiKey, userPrompt)
     : await callGroq(cfg.apiKey, userPrompt)
@@ -262,8 +270,21 @@ export async function generateExercises(cfg: AIConfig, params: AIGenerateParams)
   const parsed: any[] = JSON.parse(jsonStr)
   if (!Array.isArray(parsed)) throw new Error('La réponse IA n\'est pas un tableau JSON.')
 
+  const officialTexts = officialAttendus.map(a => a.text)
+
   const blocks: Block[] = []
   for (const item of parsed) {
+    // Warn if AI returned an attendu that doesn't match any official text
+    if (item.type === 'exercise-header' && item.attendu) {
+      if (officialAttendus.length === 0) {
+        // No official attendus provided — strip the invented field
+        item.attendu = undefined
+        item.attenduType = undefined
+        item.attenduCode = undefined
+      } else if (!officialTexts.includes(item.attendu)) {
+        console.warn('[ReferentialCheck] L\'IA a légèrement modifié un attendu officiel :', item.attendu)
+      }
+    }
     const block = aiBlockToBlock(item)
     if (block) blocks.push(block)
   }
