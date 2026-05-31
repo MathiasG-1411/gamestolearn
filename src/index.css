@@ -54,6 +54,52 @@
   .katex-display {
     margin: 0.5em 0;
   }
+
+  /* ── Gestion des sauts de page ─────────────────────────────── */
+
+  /* Par défaut : chaque bloc refuse d'être coupé en deux */
+  .print-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Les tableaux et grilles peuvent se couper entre lignes,
+     mais jamais à l'intérieur d'une ligne */
+  .print-block-table,
+  .print-block-rubric {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+  .print-block-table tr,
+  .print-block-rubric tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* L'en-tête d'exercice reste toujours avec le bloc suivant */
+  .print-block-exercise-header {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* En-tête du document ne se retrouve pas seul en bas d'une page */
+  .worksheet-header {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Jamais de marge de sélection / ring à l'impression */
+  .print-block {
+    outline: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+  }
+
+  /* Les couleurs de fond explicites des blocs sont conservées */
+  .print-block[style*="background"] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 
 /* KaTeX overrides */

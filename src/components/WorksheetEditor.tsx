@@ -802,6 +802,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
                       onClick={() => !previewMode && setSelectedId(block.id)}
                       className={[
                         'relative group rounded transition',
+                        `print-block print-block-${block.type}`,
                         !previewMode ? 'hover:ring-2 hover:ring-indigo-200 cursor-pointer' : '',
                         selectedId === block.id && !previewMode ? 'ring-2 ring-indigo-400 bg-indigo-50/30' : '',
                         isDragSource ? 'opacity-40' : '',
