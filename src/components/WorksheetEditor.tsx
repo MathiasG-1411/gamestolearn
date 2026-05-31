@@ -664,7 +664,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
     : ''
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
+    <div className="editor-root min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
       {/* Toast */}
       {toast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg print:hidden">
@@ -760,7 +760,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="editor-body flex flex-1 overflow-hidden relative">
         {/* Left sidebar */}
         {!previewMode && (
           <EditorSidebar
@@ -777,7 +777,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
         )}
 
         {/* Main canvas */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="editor-canvas flex-1 overflow-y-auto p-4">
           <div className="max-w-[210mm] mx-auto">
             {/* Inject print-specific overlay positioning */}
             {hasBorder && <style dangerouslySetInnerHTML={{ __html: borderPrintCSS }} />}

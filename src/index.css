@@ -39,9 +39,33 @@
 @media print {
   .print\:hidden { display: none !important; }
 
-  body {
+  body, html {
     background: white !important;
     font-size: 12pt;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Réinitialiser les conteneurs flex/overflow qui coupent le contenu à l'impression */
+  .editor-root {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    background: white !important;
+  }
+
+  .editor-body {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .editor-canvas {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
   }
 
   #worksheet-print {
@@ -50,6 +74,7 @@
     border: none !important;   /* le cadre est géré par .page-border-overlay */
     margin: 0 !important;
     min-height: auto !important;
+    width: 100% !important;
   }
 
   @page {
