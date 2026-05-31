@@ -139,35 +139,56 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
       )
     }
 
-    case 'exercise-header':
+    case 'exercise-header': {
+      const attenduBadge: Record<string, { bg: string; text: string; label: string }> = {
+        S:  { bg: 'bg-blue-100',   text: 'text-blue-800',   label: 'Savoir' },
+        SF: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Savoir-faire' },
+        C:  { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Compétence' },
+      }
+      const badge = block.attenduType ? attenduBadge[block.attenduType] : null
       return (
-        <div className="my-3 flex items-start gap-3 bg-indigo-50 border-l-4 border-indigo-500 px-4 py-2 rounded-r">
-          <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
-            {block.number}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-gray-900">{block.title || 'Exercice'}</span>
-              {block.points !== undefined && (
-                <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full font-medium">
-                  {block.points} pt{block.points > 1 ? 's' : ''}
-                </span>
+        <div className="my-3 bg-indigo-50 border-l-4 border-indigo-500 px-4 py-3 rounded-r">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+              {block.number}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-gray-900">{block.title || 'Exercice'}</span>
+                {block.points !== undefined && (
+                  <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full font-medium">
+                    {block.points} pt{block.points > 1 ? 's' : ''}
+                  </span>
+                )}
+                {block.duration && <span className="text-xs text-gray-500">⏱ {block.duration}</span>}
+                {block.difficulty && (
+                  <span className="text-xs">{'★'.repeat(block.difficulty)}{'☆'.repeat(3 - block.difficulty)}</span>
+                )}
+                {badge && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badge.bg} ${badge.text}`}>
+                    {block.attenduType} — {badge.label}
+                  </span>
+                )}
+              </div>
+              {/* Attendu FWB */}
+              {block.attendu && (
+                <div className="mt-1.5 flex items-start gap-1.5">
+                  <span className="text-xs font-semibold text-indigo-500 mt-0.5 flex-shrink-0">Attendu :</span>
+                  <p className="text-xs text-indigo-700 italic leading-snug">{block.attendu}</p>
+                </div>
               )}
-              {block.duration && (
-                <span className="text-xs text-gray-500">⏱ {block.duration}</span>
+              {block.attenduCode && (
+                <p className="text-xs text-gray-400 mt-0.5">{block.attenduCode}</p>
               )}
-              {block.difficulty && (
-                <span className="text-xs">
-                  {'★'.repeat(block.difficulty)}{'☆'.repeat(3 - block.difficulty)}
-                </span>
+              {/* Legacy competency */}
+              {!block.attendu && block.competency && (
+                <p className="text-xs text-gray-500 mt-0.5 italic">{block.competency}</p>
               )}
             </div>
-            {block.competency && (
-              <p className="text-xs text-gray-500 mt-0.5 italic">{block.competency}</p>
-            )}
           </div>
         </div>
       )
+    }
 
     case 'blank-lines': {
       const lines = Array.from({ length: block.count }, (_, i) => i)

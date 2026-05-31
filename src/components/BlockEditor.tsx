@@ -336,7 +336,7 @@ export default function BlockEditor({ block, onChange }: Props) {
             <input className={inputCls} value={b.title} onChange={e => update({ title: e.target.value })} placeholder="Ex : Calculer les expressions…" />
           </Field>
           <div className="flex gap-3">
-            <Field label="Durée (optionnel)">
+            <Field label="Durée">
               <input className={inputCls} value={b.duration || ''} onChange={e => update({ duration: e.target.value })} placeholder="10 min" />
             </Field>
             <Field label="Difficulté">
@@ -348,9 +348,47 @@ export default function BlockEditor({ block, onChange }: Props) {
               </select>
             </Field>
           </div>
-          <Field label="Compétence visée (optionnel)">
-            <input className={inputCls} value={b.competency || ''} onChange={e => update({ competency: e.target.value })} placeholder="Ex : Calculer avec des fractions" />
-          </Field>
+
+          {/* FWB — Attendu */}
+          <div className="border border-indigo-100 rounded-lg p-3 bg-indigo-50 space-y-2">
+            <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Attendu FWB (référentiel CPC)</p>
+            <Field label="Type d'attendu">
+              <div className="flex gap-2">
+                {([
+                  { v: 'S',  label: 'S — Savoir',         cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+                  { v: 'SF', label: 'SF — Savoir-faire',  cls: 'bg-orange-100 text-orange-800 border-orange-300' },
+                  { v: 'C',  label: 'C — Compétence',     cls: 'bg-purple-100 text-purple-800 border-purple-300' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => update({ attenduType: b.attenduType === opt.v ? undefined : opt.v })}
+                    className={`flex-1 py-1 text-xs font-semibold rounded border transition ${b.attenduType === opt.v ? opt.cls + ' ring-2 ring-offset-1 ring-indigo-400' : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300'}`}
+                  >
+                    {opt.v === 'S' ? 'S' : opt.v}
+                    <span className="hidden sm:inline"> — {opt.v === 'S' ? 'Savoir' : opt.v === 'SF' ? 'Savoir-faire' : 'Compétence'}</span>
+                  </button>
+                ))}
+              </div>
+            </Field>
+            <Field label="Texte de l'attendu">
+              <textarea
+                className={`${inputCls} bg-white`}
+                rows={3}
+                value={b.attendu || ''}
+                onChange={e => update({ attendu: e.target.value || undefined })}
+                placeholder="Ex : L'élève est capable de résoudre des problèmes faisant appel aux quatre opérations…"
+              />
+            </Field>
+            <Field label="Référence UAA (optionnel)">
+              <input
+                className={`${inputCls} bg-white`}
+                value={b.attenduCode || ''}
+                onChange={e => update({ attenduCode: e.target.value || undefined })}
+                placeholder="Ex : UAA 3.2 — Mathématiques P4"
+              />
+            </Field>
+          </div>
         </div>
       )
     }
