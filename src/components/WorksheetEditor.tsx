@@ -265,57 +265,130 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
       )}
 
       {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-1.5 sticky top-0 z-30 print:hidden flex-wrap">
-        <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 flex-shrink-0" title="Retour">←</button>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">
+      <div className="bg-white border-b border-gray-200 px-2 py-1.5 flex items-center gap-1 sticky top-0 z-30 print:hidden">
+        {/* Back */}
+        <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 flex-shrink-0 transition" title="Retour">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+
+        {/* Title */}
+        <div className="flex-1 min-w-0 pl-1">
+          <p className="text-sm font-semibold text-gray-800 truncate leading-tight">
             {worksheet.meta.title}
-            {worksheet.version && <span className="ml-2 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">Version {worksheet.version}</span>}
+            {worksheet.version && <span className="ml-2 text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium align-middle">v{worksheet.version}</span>}
           </p>
-          <p className="text-xs text-gray-400">{worksheet.meta.subject} · {worksheet.meta.level}</p>
+          <p className="text-[11px] text-gray-400 leading-tight hidden sm:block">{worksheet.meta.subject}{worksheet.meta.level ? ` · ${worksheet.meta.level}` : ''}</p>
         </div>
 
-        {/* Always-visible: saved, points, undo, redo, preview */}
-        {savedBadge && <span className="text-xs text-gray-400 dark:text-gray-500 px-1 select-none hidden sm:inline">✓</span>}
+        {/* Divider */}
+        <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block" />
+
+        {/* Undo / Redo */}
+        <button onClick={undo} disabled={!canUndo} className="p-2 rounded-lg disabled:opacity-25 hover:bg-gray-100 text-gray-500 transition flex-shrink-0" title="Annuler (Ctrl+Z)">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h13a5 5 0 010 10h-1"/></svg>
+        </button>
+        <button onClick={redo} disabled={!canRedo} className="p-2 rounded-lg disabled:opacity-25 hover:bg-gray-100 text-gray-500 transition flex-shrink-0" title="Rétablir (Ctrl+Y)">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H8a5 5 0 000 10h1"/></svg>
+        </button>
+
+        {/* Points badge */}
         {totalPoints > 0 && (
-          <button onClick={copyPoints} className="px-2 py-1 bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-700 flex-shrink-0 hidden sm:flex" title="Total des points">
+          <button onClick={copyPoints} className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-semibold border border-indigo-200 flex-shrink-0 hidden sm:flex items-center gap-1 hover:bg-indigo-100 transition" title="Copier les points">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
             {totalPoints}pt
           </button>
         )}
-        <button onClick={undo} disabled={!canUndo} className="p-2 rounded-lg disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition flex-shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center" title="Annuler (Ctrl+Z)">↩</button>
-        <button onClick={redo} disabled={!canRedo} className="p-2 rounded-lg disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition flex-shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center" title="Rétablir (Ctrl+Y)">↪</button>
 
+        {/* Saved badge */}
+        {savedBadge && (
+          <span className="text-[11px] text-green-600 font-medium px-1 select-none hidden sm:inline-flex items-center gap-0.5">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+            Sauvegardé
+          </span>
+        )}
+
+        {/* Divider */}
+        <div className="h-6 w-px bg-gray-200 mx-1" />
+
+        {/* Preview toggle */}
         <button
           onClick={() => setPreviewMode(!previewMode)}
-          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex-shrink-0 ${previewMode ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex-shrink-0 ${previewMode ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          title={previewMode ? 'Mode édition' : 'Aperçu'}
         >
-          {previewMode ? '✏️' : '👁'}
+          {previewMode ? (
+            <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg><span className="hidden md:inline">Éditer</span></>
+          ) : (
+            <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg><span className="hidden md:inline">Aperçu</span></>
+          )}
         </button>
 
-        {/* Export buttons — visible on desktop */}
+        {/* Divider */}
+        <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block" />
+
+        {/* Export group */}
         <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
-          <button onClick={printWorksheet} className="px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition flex items-center gap-1" title="Imprimer">
-            🖨 <span className="hidden md:inline">Imprimer</span>
+          <button onClick={printWorksheet} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 transition border border-gray-200" title="Imprimer">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            <span className="hidden lg:inline">Imprimer</span>
           </button>
-          <button onClick={handleExportPDF} disabled={exportingPDF} className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white rounded-lg text-xs font-medium transition flex items-center gap-1" title="Exporter en PDF">
-            {exportingPDF ? '⏳' : '📄'} <span className="hidden md:inline">PDF</span>
+          <button onClick={handleExportPDF} disabled={exportingPDF} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white transition shadow-sm" title="Exporter en PDF">
+            {exportingPDF ? (
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            )}
+            PDF
           </button>
-          <button onClick={handleExportDOCX} disabled={exportingDOCX} className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg text-xs font-medium transition flex items-center gap-1" title="Exporter en Word (.docx)">
-            {exportingDOCX ? '⏳' : 'W'} <span className="hidden md:inline">Word</span>
+          <button onClick={handleExportDOCX} disabled={exportingDOCX} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white transition shadow-sm" title="Exporter en Word">
+            {exportingDOCX ? (
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><text x="2" y="17" fontSize="14" fontWeight="bold" fill="white">W</text></svg>
+            )}
+            Word
           </button>
         </div>
 
-        {/* Desktop extra buttons */}
+        {/* Tools group — desktop */}
         {!previewMode && (
-          <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
-            <button onClick={() => setShowAI(true)} className="px-2.5 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg text-xs font-bold transition shadow-sm">✨ IA</button>
-            <button onClick={() => setShowBank(!showBank)} className="p-2 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition" title="Banque">📚</button>
-            <button onClick={() => setShowPresentation(true)} className="p-2 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition" title="Présentation">🎯</button>
-            <button onClick={shareWorksheet} className="p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition" title="Partager">📤</button>
-            <button onClick={() => onDifferentiate(worksheet)} className="px-2 py-1.5 text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/50 rounded-lg text-xs font-medium transition border border-teal-200 dark:border-teal-700" title="Version différenciée">⊕ B</button>
-            <button onClick={() => setCorrectionMode(!correctionMode)} className={`px-2 py-1.5 rounded-lg text-xs font-medium transition border ${correctionMode ? 'bg-green-600 text-white border-green-600' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-700 hover:bg-green-100'}`}>✓</button>
-            <button onClick={() => setShowPageBorder(true)} className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Cadre de page">📄</button>
-            {onToggleDark && <button onClick={onToggleDark} className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">{darkMode ? '☀️' : '🌙'}</button>}
+          <div className="hidden sm:flex items-center gap-0.5 flex-shrink-0 ml-1">
+            <div className="h-6 w-px bg-gray-200 mr-1" />
+            <button onClick={() => setShowAI(true)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white transition shadow-sm">
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              IA
+            </button>
+            <button onClick={() => setShowBank(!showBank)} className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 transition" title="Banque de questions">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            </button>
+            <button onClick={() => setShowPresentation(true)} className="p-2 rounded-lg text-purple-600 hover:bg-purple-50 transition" title="Mode présentation">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+            </button>
+            <button onClick={shareWorksheet} className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition" title="Partager par lien">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+            </button>
+            <button onClick={() => onDifferentiate(worksheet)} className="p-2 rounded-lg text-teal-600 hover:bg-teal-50 transition" title="Version différenciée">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            </button>
+            <button
+              onClick={() => setCorrectionMode(!correctionMode)}
+              className={`p-2 rounded-lg transition ${correctionMode ? 'bg-green-100 text-green-700' : 'text-gray-500 hover:bg-gray-100'}`}
+              title="Mode corrigé"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </button>
+            <button onClick={() => setShowPageBorder(true)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition" title="Cadre de page">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            </button>
+            {onToggleDark && (
+              <button onClick={onToggleDark} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition" title={darkMode ? 'Mode clair' : 'Mode sombre'}>
+                {darkMode ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                )}
+              </button>
+            )}
           </div>
         )}
 
@@ -323,24 +396,68 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
         <div ref={moreMenuRef} className="relative sm:hidden flex-shrink-0">
           <button
             onClick={() => setShowMoreMenu(v => !v)}
-            className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition min-w-[36px] min-h-[36px] flex items-center justify-center font-bold text-lg"
-          >⋮</button>
+            className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition flex items-center justify-center"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
           {showMoreMenu && (
-            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 z-50 min-w-[200px]" onClick={() => setShowMoreMenu(false)}>
-              <button onClick={printWorksheet} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">🖨 Imprimer</button>
-              <button onClick={handleExportPDF} disabled={exportingPDF} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-60">📄 {exportingPDF ? 'Export PDF en cours…' : 'Exporter en PDF'}</button>
-              <button onClick={handleExportDOCX} disabled={exportingDOCX} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-60">📝 {exportingDOCX ? 'Export Word en cours…' : 'Exporter en Word (.docx)'}</button>
-              <button onClick={() => setShowAI(true)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-medium">✨ Générer avec l'IA</button>
-              <button onClick={() => setShowBank(!showBank)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">📚 Banque de questions</button>
-              <button onClick={() => setShowPresentation(true)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">🎯 Mode présentation</button>
-              <button onClick={shareWorksheet} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">📤 Partager par lien</button>
-              <button onClick={() => onDifferentiate(worksheet)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">⊕ Créer une version B</button>
-              <button onClick={() => setCorrectionMode(!correctionMode)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
-                {correctionMode ? '✅ Masquer le corrigé' : '✓ Afficher le corrigé'}
+            <div className="absolute right-0 top-full mt-1 bg-white rounded-2xl shadow-2xl border border-gray-100 py-1.5 z-50 min-w-[220px]" onClick={() => setShowMoreMenu(false)}>
+              <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Export</p>
+              <button onClick={printWorksheet} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                Imprimer
               </button>
-              <button onClick={() => setShowPageBorder(true)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">📄 Cadre de page</button>
-              {totalPoints > 0 && <button onClick={copyPoints} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">🏅 Copier les points ({totalPoints}pt)</button>}
-              {onToggleDark && <button onClick={onToggleDark} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">{darkMode ? '☀️ Mode clair' : '🌙 Mode sombre'}</button>}
+              <button onClick={handleExportPDF} disabled={exportingPDF} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                <svg className="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                {exportingPDF ? 'Export PDF…' : 'Exporter en PDF'}
+              </button>
+              <button onClick={handleExportDOCX} disabled={exportingDOCX} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                {exportingDOCX ? 'Export Word…' : 'Exporter en Word'}
+              </button>
+              <div className="border-t border-gray-100 my-1" />
+              <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Outils</p>
+              <button onClick={() => setShowAI(true)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-indigo-600 hover:bg-indigo-50 font-medium">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                Générer avec l'IA
+              </button>
+              <button onClick={() => setShowBank(!showBank)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                Banque de questions
+              </button>
+              <button onClick={() => setShowPresentation(true)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                Mode présentation
+              </button>
+              <button onClick={shareWorksheet} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                Partager par lien
+              </button>
+              <button onClick={() => onDifferentiate(worksheet)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                Créer une version B
+              </button>
+              <div className="border-t border-gray-100 my-1" />
+              <button onClick={() => setCorrectionMode(!correctionMode)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {correctionMode ? 'Masquer le corrigé' : 'Afficher le corrigé'}
+              </button>
+              <button onClick={() => setShowPageBorder(true)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                Cadre de page
+              </button>
+              {totalPoints > 0 && (
+                <button onClick={copyPoints} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                  <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  Copier les points ({totalPoints}pt)
+                </button>
+              )}
+              {onToggleDark && (
+                <button onClick={onToggleDark} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                  {darkMode ? 'Mode clair' : 'Mode sombre'}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -359,8 +476,9 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
               />
 
               {!previewMode && !editingHeader && (
-                <button onClick={() => setEditingHeader(true)} className="text-xs text-indigo-500 hover:text-indigo-700 mb-4 print:hidden underline">
-                  ✏️ Modifier l'en-tête
+                <button onClick={() => setEditingHeader(true)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-600 mb-4 print:hidden px-2 py-1 rounded-lg hover:bg-indigo-50 transition">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                  Modifier l'en-tête
                 </button>
               )}
 

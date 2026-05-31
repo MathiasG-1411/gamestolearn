@@ -234,6 +234,8 @@ export interface WorksheetMeta {
   showScore: boolean
   showName: boolean
   showDate: boolean
+  headerLayout?: 'classic' | 'centered' | 'modern' | 'compact' | 'school'
+  accentColor?: string
 }
 
 export interface Worksheet {
