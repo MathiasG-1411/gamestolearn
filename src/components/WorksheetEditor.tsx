@@ -88,8 +88,8 @@ function createDefaultBlock(type: BlockType): Block {
     case 'columns': return { id, type, columns: 2, content: ['', ''] }
     case 'numbered-list': return { id, type, items: ['Premier élément', 'Deuxième élément'] }
     case 'bullet-list': return { id, type, items: ['Premier élément', 'Deuxième élément'] }
-    case 'blank-lines': return { id, type, count: 4, lined: true }
-    case 'shape': return { id, type, variant: 'rectangle', color: '#4f46e5', size: 'md', count: 1 }
+    case 'blank-lines': return { id, type, count: 4, lined: true, lineHeight: 36, paperStyle: 'lines' }
+    case 'shape': return { id, type, variant: 'rectangle', color: '#4f46e5', size: 'md', sizeN: 80, count: 1, filled: true }
     case 'divider': return { id, type, style: 'solid' }
     case 'exercise-header': return { id, type, number: 1, title: 'Exercice', points: 4 }
     case 'image': return { id, type, src: '', alt: '', width: 'full', align: 'center' }

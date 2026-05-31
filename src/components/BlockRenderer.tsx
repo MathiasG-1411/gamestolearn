@@ -143,11 +143,17 @@ function renderInner(block: Block, editMode: boolean) {
       const count = block.count || 1
       const items = Array.from({ length: count }, (_, i) => i)
       return (
-        <div className="my-2 flex flex-wrap gap-2">
+        <div className="my-2 flex flex-wrap gap-3 items-end">
           {items.map(i => (
             <div key={i} className="flex flex-col items-center gap-1">
-              <ShapeRenderer variant={block.variant} color={block.color} size={block.size} />
-              {block.label && count === 1 && (
+              <ShapeRenderer
+                variant={block.variant}
+                color={block.color}
+                size={block.size}
+                sizeN={block.sizeN}
+                filled={block.filled !== false}
+              />
+              {block.label && (
                 <span className="text-xs text-gray-600">{block.label}</span>
               )}
             </div>
@@ -225,11 +231,41 @@ function renderInner(block: Block, editMode: boolean) {
     }
 
     case 'blank-lines': {
+      const style = block.paperStyle || (block.lined ? 'lines' : 'none')
+      const lineH = block.lineHeight ?? 36
+      const spacing = block.gridSpacing ?? 20
+
+      if (style === 'grid') {
+        const gridH = block.gridHeight ?? 160
+        return (
+          <div className="my-2 w-full overflow-hidden rounded" style={{ height: gridH }}>
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id={`grid-${block.id}`} width={spacing} height={spacing} patternUnits="userSpaceOnUse">
+                  <path d={`M ${spacing} 0 L 0 0 0 ${spacing}`} fill="none" stroke="#9ca3af" strokeWidth="0.7" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill={`url(#grid-${block.id})`} />
+              <rect width="100%" height="100%" fill="none" stroke="#9ca3af" strokeWidth="0.7" />
+            </svg>
+          </div>
+        )
+      }
+
       const lines = Array.from({ length: block.count }, (_, i) => i)
       return (
-        <div className="my-2 space-y-4">
+        <div className="my-2">
           {lines.map(i => (
-            <div key={i} className={`w-full ${block.lined ? 'border-b border-gray-400' : ''}`} style={{ minHeight: '1.8rem' }} />
+            <div
+              key={i}
+              className="w-full"
+              style={{
+                height: lineH,
+                borderBottom: style === 'lines' ? '1px solid #9ca3af'
+                  : style === 'dotted' ? '1px dashed #9ca3af'
+                  : 'none',
+              }}
+            />
           ))}
         </div>
       )

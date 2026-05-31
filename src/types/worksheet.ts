@@ -80,16 +80,26 @@ export interface ColumnsBlock extends BaseBlock {
   gap?: 'sm' | 'md' | 'lg'
 }
 
-export type ShapeVariant = 'rectangle' | 'circle' | 'triangle' | 'star' | 'diamond' | 'arrow-right' | 'arrow-left' | 'cloud' | 'heart' | 'speech-bubble'
+export type ShapeVariant =
+  // Triangles
+  | 'triangle' | 'triangle-right' | 'triangle-isosceles' | 'triangle-scalene'
+  // Quadrilaterals
+  | 'rectangle' | 'square' | 'rhombus' | 'parallelogram' | 'trapezoid' | 'trapezoid-right'
+  // Circles
+  | 'circle' | 'disk' | 'semicircle'
+  // Other
+  | 'star' | 'diamond' | 'arrow-right' | 'arrow-left' | 'cloud' | 'heart' | 'speech-bubble'
 
 export interface ShapeBlock extends BaseBlock {
   type: 'shape'
   variant: ShapeVariant
   color: string
   size: 'sm' | 'md' | 'lg'
+  sizeN?: number         // pixel size (takes priority over size enum)
   label?: string
   count?: number
   arrangement?: 'row' | 'grid'
+  filled?: boolean       // filled vs outline
 }
 
 export interface ImageBlock extends BaseBlock {
@@ -126,6 +136,10 @@ export interface BlankLinesBlock extends BaseBlock {
   type: 'blank-lines'
   count: number
   lined: boolean
+  lineHeight?: number      // height per line in px, default 36
+  paperStyle?: 'lines' | 'dotted' | 'grid'
+  gridSpacing?: number     // grid square size in px, default 20
+  gridHeight?: number      // total grid height in px (for grid mode)
 }
 
 export interface ListBlock extends BaseBlock {

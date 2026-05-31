@@ -25,17 +25,34 @@ const MATH_SNIPPETS = [
   { label: '°', latex: '^{\\circ}' },
 ]
 
-const SHAPE_VARIANTS: { value: ShapeVariant; label: string }[] = [
-  { value: 'rectangle', label: '▭' },
-  { value: 'circle', label: '●' },
-  { value: 'triangle', label: '▲' },
-  { value: 'star', label: '★' },
-  { value: 'diamond', label: '◆' },
-  { value: 'arrow-right', label: '→' },
-  { value: 'arrow-left', label: '←' },
-  { value: 'cloud', label: '☁' },
-  { value: 'heart', label: '♥' },
-  { value: 'speech-bubble', label: '💬' },
+const SHAPE_GROUPS: { group: string; shapes: { value: ShapeVariant; label: string; svg: string }[] }[] = [
+  { group: 'Triangles', shapes: [
+    { value: 'triangle', label: 'Équilatéral', svg: 'M50,6 L94,94 L6,94Z' },
+    { value: 'triangle-right', label: 'Rectangle', svg: 'M6,94 L6,6 L94,94Z' },
+    { value: 'triangle-isosceles', label: 'Isocèle', svg: 'M50,6 L86,94 L14,94Z' },
+    { value: 'triangle-scalene', label: 'Quelconque', svg: 'M10,88 L88,76 L35,6Z' },
+  ]},
+  { group: 'Quadrilatères', shapes: [
+    { value: 'square', label: 'Carré', svg: 'M10,10 H90 V90 H10Z' },
+    { value: 'rectangle', label: 'Rectangle', svg: 'M5,20 H95 V80 H5Z' },
+    { value: 'rhombus', label: 'Losange', svg: 'M50,5 L95,50 L50,95 L5,50Z' },
+    { value: 'parallelogram', label: 'Parallélogramme', svg: 'M25,10 L90,10 L75,90 L10,90Z' },
+    { value: 'trapezoid', label: 'Trapèze isocèle', svg: 'M20,10 L80,10 L95,90 L5,90Z' },
+    { value: 'trapezoid-right', label: 'Trapèze rectangle', svg: 'M10,10 L75,10 L90,90 L10,90Z' },
+  ]},
+  { group: 'Cercles', shapes: [
+    { value: 'disk', label: 'Disque', svg: 'M50,50 m-44,0 a44,44 0 1,0 88,0 a44,44 0 1,0 -88,0' },
+    { value: 'circle', label: 'Cercle', svg: 'M50,50 m-44,0 a44,44 0 1,0 88,0 a44,44 0 1,0 -88,0' },
+    { value: 'semicircle', label: 'Demi-cercle', svg: 'M6,50 A44,44 0 0,1 94,50Z' },
+  ]},
+  { group: 'Autres', shapes: [
+    { value: 'star', label: 'Étoile', svg: 'M50,5 L61,35 L95,35 L68,57 L79,91 L50,70 L21,91 L32,57 L5,35 L39,35Z' },
+    { value: 'diamond', label: 'Diamant', svg: 'M50,5 L95,50 L50,95 L5,50Z' },
+    { value: 'arrow-right', label: 'Flèche →', svg: 'M0,35 L65,35 L65,15 L95,50 L65,85 L65,65 L0,65Z' },
+    { value: 'arrow-left', label: 'Flèche ←', svg: 'M100,35 L35,35 L35,15 L5,50 L35,85 L35,65 L100,65Z' },
+    { value: 'heart', label: 'Cœur', svg: 'M50,84 L16,52 Q2,36 16,22 Q30,8 50,28 Q70,8 84,22 Q98,36 84,52Z' },
+    { value: 'cloud', label: 'Nuage', svg: 'M25,72 Q8,72 8,54 Q8,34 28,32 Q30,12 55,16 Q68,4 84,18 Q108,18 112,40 Q130,40 130,60 Q130,76 110,76Z' },
+  ]},
 ]
 
 const COLORS = ['#4f46e5', '#dc2626', '#16a34a', '#d97706', '#db2777', '#0891b2', '#7c3aed', '#000000', '#6b7280']
@@ -320,38 +337,83 @@ function renderBlockSpecificEditor(block: Block, update: (patch: Partial<Block>)
 
     case 'shape': {
       const b = block as ShapeBlock
+      const sizeVal = b.sizeN ?? 80
       return (
-        <div className="space-y-3">
-          <Field label="Forme">
-            <div className="flex flex-wrap gap-2">
-              {SHAPE_VARIANTS.map(v => (
-                <button key={v.value} type="button" onClick={() => update({ variant: v.value })} className={`w-10 h-10 text-xl border-2 rounded flex items-center justify-center transition ${b.variant === v.value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-400'}`} title={v.value}>{v.label}</button>
-              ))}
+        <div className="space-y-4">
+          {/* Shape picker by group */}
+          {SHAPE_GROUPS.map(({ group, shapes }) => (
+            <div key={group}>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{group}</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {shapes.map(v => {
+                  const isFilled = b.filled !== false
+                  const isCircle = v.value === 'circle'
+                  return (
+                    <button
+                      key={v.value}
+                      type="button"
+                      onClick={() => update({ variant: v.value })}
+                      className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg border-2 transition text-[10px] font-medium ${b.variant === v.value ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-gray-300 text-gray-600'}`}
+                    >
+                      <svg viewBox="0 0 100 100" className="w-8 h-8">
+                        <path
+                          d={v.svg}
+                          fill={isFilled && !isCircle ? b.color : 'none'}
+                          stroke={!isFilled || isCircle ? b.color : 'none'}
+                          strokeWidth={isFilled && !isCircle ? 0 : 5}
+                        />
+                        {isCircle && <circle cx="50" cy="50" r="44" fill="none" stroke={b.color} strokeWidth="5" />}
+                      </svg>
+                      {v.label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          </Field>
+          ))}
+
+          {/* Color + filled/outline */}
           <Field label="Couleur">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 items-center">
               {COLORS.map(c => (
-                <button key={c} type="button" onClick={() => update({ color: c })} className={`w-7 h-7 rounded-full border-2 transition ${b.color === c ? 'border-indigo-500 scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />
+                <button key={c} type="button" onClick={() => update({ color: c })} className={`w-6 h-6 rounded-full border-2 transition ${b.color === c ? 'border-gray-800 scale-110' : 'border-white shadow'}`} style={{ backgroundColor: c }} />
               ))}
-              <input type="color" value={b.color} onChange={e => update({ color: e.target.value })} className="w-7 h-7 rounded cursor-pointer" />
+              <input type="color" value={b.color} onChange={e => update({ color: e.target.value })} className="w-6 h-6 rounded-full cursor-pointer border border-gray-200" />
+              <div className="ml-1 flex rounded-lg border border-gray-200 overflow-hidden">
+                <button type="button" onClick={() => update({ filled: true })} className={`px-2.5 py-1 text-[10px] font-medium transition ${b.filled !== false ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>Pleine</button>
+                <button type="button" onClick={() => update({ filled: false })} className={`px-2.5 py-1 text-[10px] font-medium transition ${b.filled === false ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>Contour</button>
+              </div>
             </div>
           </Field>
+
+          {/* Size slider */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Taille</span>
+              <span className="text-xs font-mono text-gray-500">{sizeVal}px</span>
+            </div>
+            <input
+              type="range"
+              min={30}
+              max={250}
+              step={5}
+              value={sizeVal}
+              onChange={e => update({ sizeN: parseInt(e.target.value) })}
+              className="w-full accent-indigo-600"
+            />
+            <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+              <span>Petit</span><span>Grand</span>
+            </div>
+          </div>
+
           <div className="flex gap-3">
-            <Field label="Taille">
-              <select className={selectCls} value={b.size} onChange={e => update({ size: e.target.value as 'sm'|'md'|'lg' })}>
-                <option value="sm">Petit</option>
-                <option value="md">Moyen</option>
-                <option value="lg">Grand</option>
-              </select>
-            </Field>
             <Field label="Quantité">
-              <input type="number" min={1} max={20} className={inputCls} value={b.count || 1} onChange={e => update({ count: parseInt(e.target.value) || 1 })} />
+              <input type="number" min={1} max={30} className={inputCls} value={b.count || 1} onChange={e => update({ count: parseInt(e.target.value) || 1 })} />
+            </Field>
+            <Field label="Étiquette">
+              <input className={inputCls} value={b.label || ''} onChange={e => update({ label: e.target.value })} placeholder="optionnel" />
             </Field>
           </div>
-          <Field label="Étiquette (optionnel)">
-            <input className={inputCls} value={b.label || ''} onChange={e => update({ label: e.target.value })} placeholder="Ex : pommes" />
-          </Field>
         </div>
       )
     }
@@ -431,15 +493,74 @@ function renderBlockSpecificEditor(block: Block, update: (patch: Partial<Block>)
 
     case 'blank-lines': {
       const b = block as BlankLinesBlock
+      const style = b.paperStyle || (b.lined ? 'lines' : 'none')
+      const isGrid = style === 'grid'
       return (
         <div className="space-y-3">
-          <Field label="Nombre de lignes">
-            <input type="number" min={1} max={20} className={inputCls} value={b.count} onChange={e => update({ count: parseInt(e.target.value) || 1 })} />
+          {/* Paper style */}
+          <Field label="Style de papier">
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { v: 'none', label: 'Aucun', icon: <svg viewBox="0 0 40 20"><rect x="2" y="2" width="36" height="16" fill="none" stroke="#d1d5db" strokeWidth="1"/></svg> },
+                { v: 'lines', label: 'Ligné', icon: <svg viewBox="0 0 40 20"><path d="M2,7 H38 M2,14 H38" stroke="#9ca3af" strokeWidth="1.2"/></svg> },
+                { v: 'dotted', label: 'Pointillé', icon: <svg viewBox="0 0 40 20"><path d="M2,7 H38 M2,14 H38" stroke="#9ca3af" strokeWidth="1.2" strokeDasharray="2 2"/></svg> },
+                { v: 'grid', label: 'Quadrillé', icon: <svg viewBox="0 0 40 20"><path d="M2,7 H38 M2,14 H38 M14,2 V18 M26,2 V18" stroke="#9ca3af" strokeWidth="0.8"/></svg> },
+              ].map(({ v, label, icon }) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => update({ paperStyle: v as BlankLinesBlock['paperStyle'], lined: v !== 'none' })}
+                  className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg border-2 text-[10px] font-medium transition ${style === v ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                >
+                  <div className="w-10 h-5 flex items-center justify-center">{icon}</div>
+                  {label}
+                </button>
+              ))}
+            </div>
           </Field>
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" checked={b.lined} onChange={e => update({ lined: e.target.checked })} />
-            Afficher les lignes de réponse
-          </label>
+
+          {isGrid ? (
+            <>
+              {/* Grid: height + spacing */}
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Hauteur totale</span>
+                  <span className="text-xs font-mono text-gray-500">{b.gridHeight ?? 160}px</span>
+                </div>
+                <input type="range" min={60} max={600} step={20} value={b.gridHeight ?? 160}
+                  onChange={e => update({ gridHeight: parseInt(e.target.value) })}
+                  className="w-full accent-indigo-600" />
+                <div className="flex justify-between text-[10px] text-gray-400 mt-0.5"><span>Petite</span><span>Grande</span></div>
+              </div>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Taille des carreaux</span>
+                  <span className="text-xs font-mono text-gray-500">{b.gridSpacing ?? 20}px</span>
+                </div>
+                <input type="range" min={8} max={50} step={2} value={b.gridSpacing ?? 20}
+                  onChange={e => update({ gridSpacing: parseInt(e.target.value) })}
+                  className="w-full accent-indigo-600" />
+                <div className="flex justify-between text-[10px] text-gray-400 mt-0.5"><span>Petits (5mm)</span><span>Grands (1cm)</span></div>
+              </div>
+            </>
+          ) : (
+            <>
+              <Field label="Nombre de lignes">
+                <input type="number" min={1} max={30} className={inputCls} value={b.count}
+                  onChange={e => update({ count: parseInt(e.target.value) || 1 })} />
+              </Field>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Hauteur par ligne</span>
+                  <span className="text-xs font-mono text-gray-500">{b.lineHeight ?? 36}px</span>
+                </div>
+                <input type="range" min={20} max={100} step={4} value={b.lineHeight ?? 36}
+                  onChange={e => update({ lineHeight: parseInt(e.target.value) })}
+                  className="w-full accent-indigo-600" />
+                <div className="flex justify-between text-[10px] text-gray-400 mt-0.5"><span>Compacte</span><span>Très large</span></div>
+              </div>
+            </>
+          )}
         </div>
       )
     }
