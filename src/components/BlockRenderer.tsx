@@ -318,6 +318,126 @@ function renderInner(block: Block, editMode: boolean) {
         </div>
       )
 
+    case 'exercise-item': {
+      const b = block
+
+      // Question zone
+      const questionZone = (() => {
+        const text = b.questionText || (editMode ? '(Question…)' : '')
+        const base = 'text-gray-900 text-sm leading-relaxed'
+        switch (b.questionStyle) {
+          case 'shaded':
+            return (
+              <div className="px-3 py-2 rounded" style={{ backgroundColor: b.questionBg || '#f1f5f9' }}>
+                <p className={base}>{text}</p>
+              </div>
+            )
+          case 'boxed':
+            return (
+              <div className="px-3 py-2 rounded border-2" style={{ borderColor: b.questionBorderColor || '#4f46e5', backgroundColor: b.questionBg || 'transparent' }}>
+                <p className={base}>{text}</p>
+              </div>
+            )
+          default:
+            return <p className={base}>{text}</p>
+        }
+      })()
+
+      // Answer zone
+      const answerZone = (() => {
+        const boxHeightPx = { sm: 48, md: 80, lg: 120, xl: 180 }[b.boxHeight]
+        const letters = ['A', 'B', 'C', 'D', 'E', 'F']
+
+        switch (b.answerStyle) {
+          case 'lines':
+            return (
+              <div className="mt-2 space-y-5">
+                {Array.from({ length: b.lineCount }).map((_, i) => (
+                  <div key={i} className="border-b border-gray-400 w-full" style={{ minHeight: '1px' }} />
+                ))}
+              </div>
+            )
+          case 'dotted-lines':
+            return (
+              <div className="mt-2 space-y-5">
+                {Array.from({ length: b.lineCount }).map((_, i) => (
+                  <div key={i} className="border-b border-dashed border-gray-400 w-full" style={{ minHeight: '1px' }} />
+                ))}
+              </div>
+            )
+          case 'box':
+            return (
+              <div className="mt-2 border-2 border-gray-400 rounded w-full" style={{ height: boxHeightPx }} />
+            )
+          case 'grid':
+            return (
+              <div
+                className="mt-2 border-2 border-gray-400 rounded w-full"
+                style={{
+                  height: boxHeightPx,
+                  backgroundImage:
+                    'linear-gradient(#d1d5db 1px, transparent 1px), linear-gradient(90deg, #d1d5db 1px, transparent 1px)',
+                  backgroundSize: '10mm 10mm',
+                }}
+              />
+            )
+          case 'qcm': {
+            const opts = b.qcmOptions.filter(o => o.trim())
+            return (
+              <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1.5">
+                {opts.map((opt, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    {b.qcmOptionStyle === 'letters' ? (
+                      <span className="w-6 h-6 border-2 border-gray-400 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">{letters[i]}</span>
+                    ) : (
+                      <span className="w-5 h-5 border-2 border-gray-400 rounded-full flex-shrink-0" />
+                    )}
+                    <span className="text-sm text-gray-800">{opt}</span>
+                  </div>
+                ))}
+              </div>
+            )
+          }
+          case 'true-false':
+            return (
+              <div className="mt-2 flex items-center gap-6">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-5 h-5 border-2 border-gray-400 rounded-full" />
+                  <span className="text-sm font-medium text-green-700">Vrai</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-5 h-5 border-2 border-gray-400 rounded-full" />
+                  <span className="text-sm font-medium text-red-600">Faux</span>
+                </div>
+              </div>
+            )
+          case 'short':
+            return (
+              <div className="mt-2 border-2 border-gray-400 rounded px-2 py-1 min-h-[2rem] w-full max-w-xs" />
+            )
+          case 'none':
+          default:
+            return null
+        }
+      })()
+
+      if (b.layout === 'side-by-side') {
+        return (
+          <div className="my-2 flex gap-4 items-start">
+            <div className="flex-1">{questionZone}</div>
+            <div className="flex-1">{answerZone}</div>
+          </div>
+        )
+      }
+
+      return (
+        <div className="my-2">
+          {questionZone}
+          {answerZone}
+        </div>
+      )
+    }
+
     default:
       return null
   }

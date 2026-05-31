@@ -15,6 +15,7 @@ export type BlockType =
   | 'true-false'
   | 'fill-blank'
   | 'matching'
+  | 'exercise-item'
 
 export interface BaseBlock {
   id: string
@@ -150,6 +151,33 @@ export interface MatchingBlock extends BaseBlock {
   rightItems: string[]
 }
 
+export type QuestionStyle = 'plain' | 'shaded' | 'boxed'
+export type AnswerStyle =
+  | 'lines'
+  | 'dotted-lines'
+  | 'box'
+  | 'grid'
+  | 'qcm'
+  | 'true-false'
+  | 'short'
+  | 'none'
+
+export interface ExerciseItemBlock extends BaseBlock {
+  type: 'exercise-item'
+  // Question zone
+  questionText: string
+  questionStyle: QuestionStyle
+  questionBg?: string
+  questionBorderColor?: string
+  // Answer zone
+  answerStyle: AnswerStyle
+  lineCount: number           // for lines / dotted-lines
+  boxHeight: 'sm' | 'md' | 'lg' | 'xl'  // for box / grid
+  qcmOptions: string[]        // for qcm
+  qcmOptionStyle: 'letters' | 'circles'
+  layout: 'stacked' | 'side-by-side'  // question left, answer right
+}
+
 export type Block =
   | TextBlock
   | HeadingBlock
@@ -166,6 +194,7 @@ export type Block =
   | TrueFalseBlock
   | FillBlankBlock
   | MatchingBlock
+  | ExerciseItemBlock
 
 export interface WorksheetMeta {
   title: string

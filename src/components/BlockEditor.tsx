@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Block, TextBlock, HeadingBlock, MathBlock, TableBlock, ColumnsBlock, ShapeBlock, ExerciseHeaderBlock, BlankLinesBlock, ListBlock, ShapeVariant, QCMBlock, TrueFalseBlock, FillBlankBlock, MatchingBlock } from '../types/worksheet'
+import type { Block, TextBlock, HeadingBlock, MathBlock, TableBlock, ColumnsBlock, ShapeBlock, ExerciseHeaderBlock, BlankLinesBlock, ListBlock, ShapeVariant, QCMBlock, TrueFalseBlock, FillBlankBlock, MatchingBlock, ExerciseItemBlock, AnswerStyle, QuestionStyle } from '../types/worksheet'
 import { FONT_OPTIONS } from '../types/worksheet'
 import MathRenderer from './MathRenderer'
 
@@ -538,6 +538,147 @@ function renderBlockSpecificEditor(block: Block, update: (patch: Partial<Block>)
             <button type="button" onClick={addPair} className="text-xs px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200">+ Paire</button>
           </div>
           <p className="text-xs text-gray-400 italic">💡 La colonne droite sera mélangée automatiquement à l'impression.</p>
+        </div>
+      )
+    }
+
+    case 'exercise-item': {
+      const b = block as ExerciseItemBlock
+      const ANSWER_STYLES: { value: AnswerStyle; label: string; icon: string }[] = [
+        { value: 'lines',        label: 'Lignes',           icon: '≡' },
+        { value: 'dotted-lines', label: 'Pointillés',       icon: '⋯' },
+        { value: 'box',          label: 'Cadre vide',       icon: '□' },
+        { value: 'grid',         label: 'Quadrillé',        icon: '⊞' },
+        { value: 'qcm',          label: 'QCM',              icon: '🔘' },
+        { value: 'true-false',   label: 'Vrai / Faux',      icon: '✓✗' },
+        { value: 'short',        label: 'Case courte',      icon: '▭' },
+        { value: 'none',         label: 'Aucune',           icon: '—' },
+      ]
+      const Q_STYLES: { value: QuestionStyle; label: string }[] = [
+        { value: 'plain',  label: 'Texte simple' },
+        { value: 'shaded', label: 'Fond coloré' },
+        { value: 'boxed',  label: 'Encadré' },
+      ]
+      const updateOpt = (i: number, val: string) => update({ qcmOptions: b.qcmOptions.map((o, idx) => idx === i ? val : o) })
+      const addOpt = () => update({ qcmOptions: [...b.qcmOptions, ''] })
+      const removeOpt = (i: number) => { if (b.qcmOptions.length > 2) update({ qcmOptions: b.qcmOptions.filter((_, idx) => idx !== i) }) }
+      const letters = ['A', 'B', 'C', 'D', 'E', 'F']
+
+      return (
+        <div className="space-y-4">
+          {/* Question zone */}
+          <div className="space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Zone question</p>
+            <Field label="Texte de la question">
+              <textarea className={inputCls} rows={3} value={b.questionText} onChange={e => update({ questionText: e.target.value })} placeholder="Quelle est la capitale de la France ?" />
+            </Field>
+            <Field label="Style d'affichage">
+              <div className="flex gap-2">
+                {Q_STYLES.map(s => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => update({ questionStyle: s.value })}
+                    className={`flex-1 py-1.5 text-xs rounded border transition ${b.questionStyle === s.value ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'}`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </Field>
+            {(b.questionStyle === 'shaded' || b.questionStyle === 'boxed') && (
+              <Field label={b.questionStyle === 'shaded' ? 'Couleur de fond' : 'Couleur du cadre'}>
+                <div className="flex flex-wrap gap-1.5">
+                  {['#fef9c3', '#dbeafe', '#dcfce7', '#fce7f3', '#f3f4f6', '#fff7ed', '#ede9fe'].map(c => (
+                    <button key={c} type="button"
+                      onClick={() => b.questionStyle === 'shaded' ? update({ questionBg: c }) : update({ questionBorderColor: c })}
+                      className={`w-6 h-6 rounded border-2 transition ${(b.questionStyle === 'shaded' ? b.questionBg : b.questionBorderColor) === c ? 'border-indigo-500 scale-110' : 'border-gray-200'}`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                  <input type="color"
+                    value={(b.questionStyle === 'shaded' ? b.questionBg : b.questionBorderColor) || '#ffffff'}
+                    onChange={e => b.questionStyle === 'shaded' ? update({ questionBg: e.target.value }) : update({ questionBorderColor: e.target.value })}
+                    className="w-6 h-6 rounded cursor-pointer border border-gray-200"
+                  />
+                </div>
+              </Field>
+            )}
+          </div>
+
+          {/* Answer zone */}
+          <div className="space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Zone réponse</p>
+            <Field label="Type de zone réponse">
+              <div className="grid grid-cols-4 gap-1">
+                {ANSWER_STYLES.map(s => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => update({ answerStyle: s.value })}
+                    className={`flex flex-col items-center gap-0.5 py-1.5 px-1 text-xs rounded border transition ${b.answerStyle === s.value ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'}`}
+                  >
+                    <span className="text-base leading-none">{s.icon}</span>
+                    <span className="leading-tight text-center" style={{ fontSize: '10px' }}>{s.label}</span>
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            {(b.answerStyle === 'lines' || b.answerStyle === 'dotted-lines') && (
+              <Field label="Nombre de lignes">
+                <input type="number" min={1} max={15} className={inputCls} value={b.lineCount} onChange={e => update({ lineCount: parseInt(e.target.value) || 1 })} />
+              </Field>
+            )}
+
+            {(b.answerStyle === 'box' || b.answerStyle === 'grid') && (
+              <Field label="Hauteur du cadre">
+                <select className={selectCls} value={b.boxHeight} onChange={e => update({ boxHeight: e.target.value as 'sm'|'md'|'lg'|'xl' })}>
+                  <option value="sm">Petite (48px)</option>
+                  <option value="md">Moyenne (80px)</option>
+                  <option value="lg">Grande (120px)</option>
+                  <option value="xl">Très grande (180px)</option>
+                </select>
+              </Field>
+            )}
+
+            {b.answerStyle === 'qcm' && (
+              <div className="space-y-2">
+                <Field label="Style des options">
+                  <select className={selectCls} value={b.qcmOptionStyle} onChange={e => update({ qcmOptionStyle: e.target.value as 'letters'|'circles' })}>
+                    <option value="letters">Lettres (A, B, C…)</option>
+                    <option value="circles">Cercles simples</option>
+                  </select>
+                </Field>
+                <div className="space-y-1.5">
+                  {b.qcmOptions.map((opt, i) => (
+                    <div key={i} className="flex gap-1.5 items-center">
+                      <span className="text-xs font-bold text-gray-400 min-w-[1rem]">{letters[i]}</span>
+                      <input className={`${inputCls} flex-1 text-xs`} value={opt} onChange={e => updateOpt(i, e.target.value)} placeholder={`Option ${letters[i]}…`} />
+                      <button type="button" onClick={() => removeOpt(i)} className="text-red-400 text-xs">✕</button>
+                    </div>
+                  ))}
+                  {b.qcmOptions.length < 6 && (
+                    <button type="button" onClick={addOpt} className="text-xs px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200">+ Option</button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Layout */}
+          <Field label="Disposition">
+            <div className="flex gap-2">
+              <button type="button" onClick={() => update({ layout: 'stacked' })}
+                className={`flex-1 py-1.5 text-xs rounded border transition ${b.layout !== 'side-by-side' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'}`}>
+                ↕ Empilé
+              </button>
+              <button type="button" onClick={() => update({ layout: 'side-by-side' })}
+                className={`flex-1 py-1.5 text-xs rounded border transition ${b.layout === 'side-by-side' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'}`}>
+                ↔ Côte à côte
+              </button>
+            </div>
+          </Field>
         </div>
       )
     }

@@ -24,6 +24,7 @@ const BLOCK_MENU: { type: BlockType; label: string; icon: string; desc: string; 
   { type: 'bullet-list', label: 'Liste à puces', icon: '•', desc: 'Liste avec puces', group: 'Contenu' },
   { type: 'image', label: 'Image', icon: '🖼', desc: 'Image depuis URL', group: 'Contenu' },
   // Exercices interactifs
+  { type: 'exercise-item', label: 'Question / Réponse', icon: '❓', desc: 'Zone question + zone réponse flexible', group: 'Exercices' },
   { type: 'qcm', label: 'QCM', icon: '🔘', desc: 'Questions à choix multiples', group: 'Exercices' },
   { type: 'true-false', label: 'Vrai / Faux', icon: '✓✗', desc: 'Affirmations à cocher', group: 'Exercices' },
   { type: 'fill-blank', label: 'Texte à trous', icon: '___', desc: 'Texte avec trous à compléter', group: 'Exercices' },
@@ -56,6 +57,7 @@ function createDefaultBlock(type: BlockType): Block {
     case 'divider': return { id, type, style: 'solid' }
     case 'exercise-header': return { id, type, number: 1, title: 'Exercice', points: 4 }
     case 'image': return { id, type, src: '', alt: '', width: 'full', align: 'center' }
+    case 'exercise-item': return { id, type, questionText: '', questionStyle: 'plain', answerStyle: 'lines', lineCount: 3, boxHeight: 'md', qcmOptions: ['', '', '', ''], qcmOptionStyle: 'letters', layout: 'stacked' }
     case 'qcm': return { id, type, question: '', options: ['', '', '', ''], style: 'letters', multipleAnswers: false }
     case 'true-false': return { id, type, instruction: 'Coche Vrai ou Faux.', statements: ['Affirmation 1', 'Affirmation 2', 'Affirmation 3'] }
     case 'fill-blank': return { id, type, instruction: 'Complète les phrases suivantes.', text: 'Le ___ se lève à l\'___.' , wordBank: [], showWordBank: false }
