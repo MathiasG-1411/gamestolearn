@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { Block, TextBlock, HeadingBlock, MathBlock, TableBlock, ColumnsBlock, ShapeBlock, ExerciseHeaderBlock, BlankLinesBlock, ListBlock, ShapeVariant } from '../types/worksheet'
+import type { Block, TextBlock, HeadingBlock, MathBlock, TableBlock, ColumnsBlock, ShapeBlock, ExerciseHeaderBlock, BlankLinesBlock, ListBlock, ShapeVariant, QCMBlock, TrueFalseBlock, FillBlankBlock, MatchingBlock } from '../types/worksheet'
+import { FONT_OPTIONS } from '../types/worksheet'
 import MathRenderer from './MathRenderer'
 
 interface Props {
@@ -21,7 +22,6 @@ const MATH_SNIPPETS = [
   { label: '×', latex: '\\times' },
   { label: '÷', latex: '\\div' },
   { label: 'α', latex: '\\alpha' },
-  { label: 'β', latex: '\\beta' },
   { label: '°', latex: '^{\\circ}' },
 ]
 
@@ -39,6 +39,7 @@ const SHAPE_VARIANTS: { value: ShapeVariant; label: string }[] = [
 ]
 
 const COLORS = ['#4f46e5', '#dc2626', '#16a34a', '#d97706', '#db2777', '#0891b2', '#7c3aed', '#000000', '#6b7280']
+const BG_PRESETS = ['#fef9c3', '#dbeafe', '#dcfce7', '#fce7f3', '#f3f4f6', '#fff7ed', '#f0fdf4', '#ede9fe']
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -52,9 +53,100 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const inputCls = 'border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-300'
 const selectCls = 'border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white'
 
+// Shared style section for all block types
+function BlockStyleSection({ block, onChange }: { block: Block; onChange: (block: Block) => void }) {
+  const [open, setOpen] = useState(false)
+  const update = (patch: Partial<Block>) => onChange({ ...block, ...patch } as Block)
+
+  return (
+    <div className="mt-4 border-t border-gray-100 pt-3">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-full"
+      >
+        <span>🎨 Style du bloc</span>
+        <span className="ml-auto">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="mt-3 space-y-3">
+          <Field label="Police">
+            <select className={selectCls} value={block.fontFamily || ''} onChange={e => update({ fontFamily: e.target.value || undefined })}>
+              {FONT_OPTIONS.map(f => (
+                <option key={f.value} value={f.value} style={{ fontFamily: f.value || undefined }}>{f.label}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Fond du cadre">
+            <div className="flex flex-wrap gap-1.5 mb-1">
+              <button type="button" onClick={() => update({ bg: undefined })} className="w-6 h-6 rounded border-2 border-gray-300 flex items-center justify-center text-gray-400 text-xs hover:border-gray-500" title="Aucun fond">✕</button>
+              {BG_PRESETS.map(c => (
+                <button key={c} type="button" onClick={() => update({ bg: c })} className={`w-6 h-6 rounded border-2 transition ${block.bg === c ? 'border-indigo-500 scale-110' : 'border-gray-200'}`} style={{ backgroundColor: c }} />
+              ))}
+              <input type="color" value={block.bg || '#ffffff'} onChange={e => update({ bg: e.target.value })} className="w-6 h-6 rounded cursor-pointer border border-gray-200" title="Couleur personnalisée" />
+            </div>
+          </Field>
+          <Field label="Bordure">
+            <div className="flex gap-2">
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => update({ borderColor: undefined, borderWidth: undefined, borderStyle: undefined })} className="w-6 h-6 border border-gray-200 rounded text-xs text-gray-400 hover:border-gray-400" title="Aucune bordure">✕</button>
+                {COLORS.slice(0, 6).map(c => (
+                  <button key={c} type="button" onClick={() => update({ borderColor: c, borderWidth: block.borderWidth || 'medium', borderStyle: block.borderStyle || 'solid' })} className={`w-5 h-5 rounded-full border-2 transition ${block.borderColor === c ? 'border-indigo-500 scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />
+                ))}
+                <input type="color" value={block.borderColor || '#000000'} onChange={e => update({ borderColor: e.target.value, borderWidth: block.borderWidth || 'medium', borderStyle: block.borderStyle || 'solid' })} className="w-5 h-5 rounded cursor-pointer" />
+              </div>
+            </div>
+            {block.borderColor && (
+              <div className="flex gap-2 mt-1">
+                <select className={`${selectCls} flex-1`} value={block.borderWidth || 'medium'} onChange={e => update({ borderWidth: e.target.value as 'thin'|'medium'|'thick' })}>
+                  <option value="thin">Fine</option>
+                  <option value="medium">Moyenne</option>
+                  <option value="thick">Épaisse</option>
+                </select>
+                <select className={`${selectCls} flex-1`} value={block.borderStyle || 'solid'} onChange={e => update({ borderStyle: e.target.value as 'solid'|'dashed'|'dotted' })}>
+                  <option value="solid">Pleine</option>
+                  <option value="dashed">Tirets</option>
+                  <option value="dotted">Points</option>
+                </select>
+              </div>
+            )}
+          </Field>
+          <div className="flex gap-2">
+            <Field label="Espacement intérieur">
+              <select className={selectCls} value={block.padding || 'none'} onChange={e => update({ padding: e.target.value as 'none'|'sm'|'md'|'lg' })}>
+                <option value="none">Aucun</option>
+                <option value="sm">Petit</option>
+                <option value="md">Moyen</option>
+                <option value="lg">Grand</option>
+              </select>
+            </Field>
+            <Field label="Coins arrondis">
+              <select className={selectCls} value={block.rounded || 'none'} onChange={e => update({ rounded: e.target.value as 'none'|'sm'|'md'|'lg' })}>
+                <option value="none">Droits</option>
+                <option value="sm">Léger</option>
+                <option value="md">Moyen</option>
+                <option value="lg">Très arrondi</option>
+              </select>
+            </Field>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function BlockEditor({ block, onChange }: Props) {
   const update = (patch: Partial<Block>) => onChange({ ...block, ...patch } as Block)
 
+  return (
+    <div>
+      {renderBlockSpecificEditor(block, update)}
+      <BlockStyleSection block={block} onChange={onChange} />
+    </div>
+  )
+}
+
+function renderBlockSpecificEditor(block: Block, update: (patch: Partial<Block>) => void) {
   switch (block.type) {
     case 'heading': {
       const b = block as HeadingBlock
@@ -90,7 +182,7 @@ export default function BlockEditor({ block, onChange }: Props) {
           <Field label="Contenu">
             <textarea className={inputCls} rows={3} value={b.content} onChange={e => update({ content: e.target.value })} placeholder="Votre texte…" />
           </Field>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2">
             <Field label="Taille">
               <select className={selectCls} value={b.fontSize || 'base'} onChange={e => update({ fontSize: e.target.value as 'sm'|'base'|'lg'|'xl' })}>
                 <option value="sm">Petit</option>
@@ -108,18 +200,9 @@ export default function BlockEditor({ block, onChange }: Props) {
             </Field>
           </div>
           <div className="flex gap-4">
-            <label className="flex items-center gap-1.5 text-sm cursor-pointer">
-              <input type="checkbox" checked={!!b.bold} onChange={e => update({ bold: e.target.checked })} className="rounded" />
-              <strong>Gras</strong>
-            </label>
-            <label className="flex items-center gap-1.5 text-sm cursor-pointer">
-              <input type="checkbox" checked={!!b.italic} onChange={e => update({ italic: e.target.checked })} />
-              <em>Italique</em>
-            </label>
-            <label className="flex items-center gap-1.5 text-sm cursor-pointer">
-              <input type="checkbox" checked={!!b.underline} onChange={e => update({ underline: e.target.checked })} />
-              <u>Souligné</u>
-            </label>
+            <label className="flex items-center gap-1.5 text-sm cursor-pointer"><input type="checkbox" checked={!!b.bold} onChange={e => update({ bold: e.target.checked })} /><strong>Gras</strong></label>
+            <label className="flex items-center gap-1.5 text-sm cursor-pointer"><input type="checkbox" checked={!!b.italic} onChange={e => update({ italic: e.target.checked })} /><em>Italique</em></label>
+            <label className="flex items-center gap-1.5 text-sm cursor-pointer"><input type="checkbox" checked={!!b.underline} onChange={e => update({ underline: e.target.checked })} /><u>Souligné</u></label>
           </div>
         </div>
       )
@@ -133,25 +216,11 @@ export default function BlockEditor({ block, onChange }: Props) {
             <input className={inputCls} value={b.label || ''} onChange={e => update({ label: e.target.value })} placeholder="a) b) 1. …" />
           </Field>
           <Field label="Formule LaTeX">
-            <textarea
-              className={`${inputCls} font-mono`}
-              rows={3}
-              value={b.latex}
-              onChange={e => update({ latex: e.target.value })}
-              placeholder="\frac{1}{2} + \frac{1}{3}"
-            />
+            <textarea className={`${inputCls} font-mono`} rows={3} value={b.latex} onChange={e => update({ latex: e.target.value })} placeholder="\frac{1}{2} + \frac{1}{3}" />
           </Field>
           <div className="flex flex-wrap gap-1">
             {MATH_SNIPPETS.map(s => (
-              <button
-                key={s.latex}
-                type="button"
-                onClick={() => update({ latex: b.latex + s.latex })}
-                className="px-2 py-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200 font-mono"
-                title={s.latex}
-              >
-                {s.label}
-              </button>
+              <button key={s.latex} type="button" onClick={() => update({ latex: b.latex + s.latex })} className="px-2 py-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200 font-mono" title={s.latex}>{s.label}</button>
             ))}
           </div>
           <Field label="Affichage">
@@ -173,26 +242,13 @@ export default function BlockEditor({ block, onChange }: Props) {
     case 'table': {
       const b = block as TableBlock
       const setCell = (ri: number, ci: number, value: string) => {
-        const rows = b.rows.map((row, r) =>
-          row.map((cell, c) => r === ri && c === ci ? { ...cell, content: value } : cell)
-        )
+        const rows = b.rows.map((row, r) => row.map((cell, c) => r === ri && c === ci ? { ...cell, content: value } : cell))
         update({ rows })
       }
-      const addRow = () => {
-        const cols = b.rows[0]?.length || 2
-        update({ rows: [...b.rows, Array.from({ length: cols }, () => ({ content: '' }))] })
-      }
-      const addCol = () => {
-        update({ rows: b.rows.map(row => [...row, { content: '' }]) })
-      }
-      const removeRow = (ri: number) => {
-        if (b.rows.length <= 1) return
-        update({ rows: b.rows.filter((_, i) => i !== ri) })
-      }
-      const removeCol = (ci: number) => {
-        if (b.rows[0]?.length <= 1) return
-        update({ rows: b.rows.map(row => row.filter((_, i) => i !== ci)) })
-      }
+      const addRow = () => update({ rows: [...b.rows, Array.from({ length: b.rows[0]?.length || 2 }, () => ({ content: '' }))] })
+      const addCol = () => update({ rows: b.rows.map(row => [...row, { content: '' }]) })
+      const removeRow = (ri: number) => { if (b.rows.length > 1) update({ rows: b.rows.filter((_, i) => i !== ri) }) }
+      const removeCol = (ci: number) => { if (b.rows[0]?.length > 1) update({ rows: b.rows.map(row => row.filter((_, i) => i !== ci)) }) }
       return (
         <div className="space-y-3">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -206,26 +262,13 @@ export default function BlockEditor({ block, onChange }: Props) {
                   <tr key={ri}>
                     {row.map((cell, ci) => (
                       <td key={ci} className="border border-gray-200 p-1">
-                        <input
-                          className="w-24 px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-300 rounded"
-                          value={cell.content}
-                          onChange={e => setCell(ri, ci, e.target.value)}
-                          placeholder={ri === 0 && b.hasHeader ? `Col ${ci+1}` : '…'}
-                        />
+                        <input className="w-24 px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-300 rounded" value={cell.content} onChange={e => setCell(ri, ci, e.target.value)} placeholder={ri === 0 && b.hasHeader ? `Col ${ci+1}` : '…'} />
                       </td>
                     ))}
-                    <td className="pl-1">
-                      <button type="button" onClick={() => removeRow(ri)} className="text-red-400 hover:text-red-600 text-xs px-1">✕</button>
-                    </td>
+                    <td className="pl-1"><button type="button" onClick={() => removeRow(ri)} className="text-red-400 hover:text-red-600 text-xs px-1">✕</button></td>
                   </tr>
                 ))}
-                <tr>
-                  {b.rows[0]?.map((_, ci) => (
-                    <td key={ci} className="text-center pt-1">
-                      <button type="button" onClick={() => removeCol(ci)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
-                    </td>
-                  ))}
-                </tr>
+                <tr>{b.rows[0]?.map((_, ci) => (<td key={ci} className="text-center pt-1"><button type="button" onClick={() => removeCol(ci)} className="text-red-400 hover:text-red-600 text-xs">✕</button></td>))}</tr>
               </tbody>
             </table>
           </div>
@@ -242,14 +285,8 @@ export default function BlockEditor({ block, onChange }: Props) {
 
     case 'columns': {
       const b = block as ColumnsBlock
-      const setColContent = (i: number, val: string) => {
-        const content = b.content.map((c, idx) => idx === i ? val : c)
-        update({ content })
-      }
-      const setColCount = (n: number) => {
-        const content = Array.from({ length: n }, (_, i) => b.content[i] || '')
-        update({ columns: n, content })
-      }
+      const setColContent = (i: number, val: string) => update({ content: b.content.map((c, idx) => idx === i ? val : c) })
+      const setColCount = (n: number) => update({ columns: n, content: Array.from({ length: n }, (_, i) => b.content[i] || '') })
       return (
         <div className="space-y-3">
           <Field label="Nombre de colonnes">
@@ -275,30 +312,16 @@ export default function BlockEditor({ block, onChange }: Props) {
           <Field label="Forme">
             <div className="flex flex-wrap gap-2">
               {SHAPE_VARIANTS.map(v => (
-                <button
-                  key={v.value}
-                  type="button"
-                  onClick={() => update({ variant: v.value })}
-                  className={`w-10 h-10 text-xl border-2 rounded flex items-center justify-center transition ${b.variant === v.value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-400'}`}
-                  title={v.value}
-                >
-                  {v.label}
-                </button>
+                <button key={v.value} type="button" onClick={() => update({ variant: v.value })} className={`w-10 h-10 text-xl border-2 rounded flex items-center justify-center transition ${b.variant === v.value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-400'}`} title={v.value}>{v.label}</button>
               ))}
             </div>
           </Field>
           <Field label="Couleur">
             <div className="flex flex-wrap gap-2">
               {COLORS.map(c => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => update({ color: c })}
-                  className={`w-7 h-7 rounded-full border-2 transition ${b.color === c ? 'border-indigo-500 scale-110' : 'border-transparent'}`}
-                  style={{ backgroundColor: c }}
-                />
+                <button key={c} type="button" onClick={() => update({ color: c })} className={`w-7 h-7 rounded-full border-2 transition ${b.color === c ? 'border-indigo-500 scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />
               ))}
-              <input type="color" value={b.color} onChange={e => update({ color: e.target.value })} className="w-7 h-7 rounded cursor-pointer" title="Couleur personnalisée" />
+              <input type="color" value={b.color} onChange={e => update({ color: e.target.value })} className="w-7 h-7 rounded cursor-pointer" />
             </div>
           </Field>
           <div className="flex gap-3">
@@ -373,15 +396,9 @@ export default function BlockEditor({ block, onChange }: Props) {
     case 'numbered-list':
     case 'bullet-list': {
       const b = block as ListBlock
-      const updateItem = (i: number, val: string) => {
-        const items = b.items.map((it, idx) => idx === i ? val : it)
-        update({ items })
-      }
+      const updateItem = (i: number, val: string) => update({ items: b.items.map((it, idx) => idx === i ? val : it) })
       const addItem = () => update({ items: [...b.items, ''] })
-      const removeItem = (i: number) => {
-        if (b.items.length <= 1) return
-        update({ items: b.items.filter((_, idx) => idx !== i) })
-      }
+      const removeItem = (i: number) => { if (b.items.length > 1) update({ items: b.items.filter((_, idx) => idx !== i) }) }
       return (
         <div className="space-y-2">
           {b.items.map((item, i) => (
@@ -407,6 +424,123 @@ export default function BlockEditor({ block, onChange }: Props) {
           </select>
         </Field>
       )
+
+    case 'qcm': {
+      const b = block as QCMBlock
+      const updateOption = (i: number, val: string) => update({ options: b.options.map((o, idx) => idx === i ? val : o) })
+      const addOption = () => update({ options: [...b.options, ''] })
+      const removeOption = (i: number) => { if (b.options.length > 2) update({ options: b.options.filter((_, idx) => idx !== i) }) }
+      const letters = ['A', 'B', 'C', 'D', 'E', 'F']
+      return (
+        <div className="space-y-3">
+          <Field label="Question">
+            <textarea className={inputCls} rows={2} value={b.question} onChange={e => update({ question: e.target.value })} placeholder="Quelle est la réponse ?" />
+          </Field>
+          <Field label="Style des options">
+            <select className={selectCls} value={b.style} onChange={e => update({ style: e.target.value as 'letters'|'circles' })}>
+              <option value="letters">Lettres (A, B, C, D)</option>
+              <option value="circles">Cercles simples</option>
+            </select>
+          </Field>
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Options</span>
+            {b.options.map((opt, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <span className="text-gray-500 text-xs font-bold min-w-[1.2rem]">{letters[i]}</span>
+                <input className={`${inputCls} flex-1`} value={opt} onChange={e => updateOption(i, e.target.value)} placeholder={`Option ${letters[i]}…`} />
+                <button type="button" onClick={() => removeOption(i)} className="text-red-400 hover:text-red-600 text-sm">✕</button>
+              </div>
+            ))}
+            {b.options.length < 6 && (
+              <button type="button" onClick={addOption} className="text-xs px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200">+ Option</button>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    case 'true-false': {
+      const b = block as TrueFalseBlock
+      const updateStmt = (i: number, val: string) => update({ statements: b.statements.map((s, idx) => idx === i ? val : s) })
+      const addStmt = () => update({ statements: [...b.statements, ''] })
+      const removeStmt = (i: number) => { if (b.statements.length > 1) update({ statements: b.statements.filter((_, idx) => idx !== i) }) }
+      return (
+        <div className="space-y-3">
+          <Field label="Consigne (optionnel)">
+            <input className={inputCls} value={b.instruction || ''} onChange={e => update({ instruction: e.target.value })} placeholder="Coche Vrai ou Faux…" />
+          </Field>
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Affirmations</span>
+            {b.statements.map((stmt, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <input className={`${inputCls} flex-1`} value={stmt} onChange={e => updateStmt(i, e.target.value)} placeholder={`Affirmation ${i+1}…`} />
+                <button type="button" onClick={() => removeStmt(i)} className="text-red-400 hover:text-red-600 text-sm">✕</button>
+              </div>
+            ))}
+            <button type="button" onClick={addStmt} className="text-xs px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200">+ Affirmation</button>
+          </div>
+        </div>
+      )
+    }
+
+    case 'fill-blank': {
+      const b = block as FillBlankBlock
+      return (
+        <div className="space-y-3">
+          <Field label="Consigne (optionnel)">
+            <input className={inputCls} value={b.instruction || ''} onChange={e => update({ instruction: e.target.value })} placeholder="Complète les phrases…" />
+          </Field>
+          <Field label="Texte (utilise ___ pour les trous)">
+            <textarea className={`${inputCls} font-mono`} rows={4} value={b.text} onChange={e => update({ text: e.target.value })} placeholder="Le soleil ___ au lever du ___." />
+          </Field>
+          <p className="text-xs text-gray-400">Tape <code className="bg-gray-100 px-1 rounded">___</code> (3 tirets bas) pour créer un trou.</p>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked={b.showWordBank} onChange={e => update({ showWordBank: e.target.checked })} />
+            Afficher une banque de mots
+          </label>
+          {b.showWordBank && (
+            <Field label="Mots à proposer (séparés par des virgules)">
+              <input className={inputCls} value={(b.wordBank || []).join(', ')} onChange={e => update({ wordBank: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} placeholder="soleil, lune, étoile…" />
+            </Field>
+          )}
+        </div>
+      )
+    }
+
+    case 'matching': {
+      const b = block as MatchingBlock
+      const updateLeft = (i: number, val: string) => update({ leftItems: b.leftItems.map((s, idx) => idx === i ? val : s) })
+      const updateRight = (i: number, val: string) => update({ rightItems: b.rightItems.map((s, idx) => idx === i ? val : s) })
+      const addPair = () => update({ leftItems: [...b.leftItems, ''], rightItems: [...b.rightItems, ''] })
+      const removePair = (i: number) => {
+        if (b.leftItems.length > 2) {
+          update({ leftItems: b.leftItems.filter((_, idx) => idx !== i), rightItems: b.rightItems.filter((_, idx) => idx !== i) })
+        }
+      }
+      return (
+        <div className="space-y-3">
+          <Field label="Consigne (optionnel)">
+            <input className={inputCls} value={b.instruction || ''} onChange={e => update({ instruction: e.target.value })} placeholder="Relie chaque élément…" />
+          </Field>
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <span>Colonne gauche</span>
+              <span>Colonne droite</span>
+            </div>
+            {b.leftItems.map((_, i) => (
+              <div key={i} className="flex gap-1 items-center">
+                <input className={`${inputCls} flex-1 text-xs`} value={b.leftItems[i]} onChange={e => updateLeft(i, e.target.value)} placeholder={`Gauche ${i+1}…`} />
+                <span className="text-gray-300 text-xs">↔</span>
+                <input className={`${inputCls} flex-1 text-xs`} value={b.rightItems[i]} onChange={e => updateRight(i, e.target.value)} placeholder={`Droite ${i+1}…`} />
+                <button type="button" onClick={() => removePair(i)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+              </div>
+            ))}
+            <button type="button" onClick={addPair} className="text-xs px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200">+ Paire</button>
+          </div>
+          <p className="text-xs text-gray-400 italic">💡 La colonne droite sera mélangée automatiquement à l'impression.</p>
+        </div>
+      )
+    }
 
     default:
       return <p className="text-sm text-gray-400 italic">Ce bloc n'a pas d'options.</p>

@@ -11,10 +11,22 @@ export type BlockType =
   | 'blank-lines'
   | 'numbered-list'
   | 'bullet-list'
+  | 'qcm'
+  | 'true-false'
+  | 'fill-blank'
+  | 'matching'
 
 export interface BaseBlock {
   id: string
   type: BlockType
+  // Block-level styles
+  bg?: string
+  borderColor?: string
+  borderWidth?: 'thin' | 'medium' | 'thick'
+  borderStyle?: 'solid' | 'dashed' | 'dotted'
+  padding?: 'none' | 'sm' | 'md' | 'lg'
+  rounded?: 'none' | 'sm' | 'md' | 'lg'
+  fontFamily?: string
 }
 
 export interface TextBlock extends BaseBlock {
@@ -109,6 +121,35 @@ export interface ListBlock extends BaseBlock {
   items: string[]
 }
 
+export interface QCMBlock extends BaseBlock {
+  type: 'qcm'
+  question: string
+  options: string[]
+  style: 'letters' | 'circles'
+  multipleAnswers: boolean
+}
+
+export interface TrueFalseBlock extends BaseBlock {
+  type: 'true-false'
+  instruction?: string
+  statements: string[]
+}
+
+export interface FillBlankBlock extends BaseBlock {
+  type: 'fill-blank'
+  instruction?: string
+  text: string
+  wordBank?: string[]
+  showWordBank: boolean
+}
+
+export interface MatchingBlock extends BaseBlock {
+  type: 'matching'
+  instruction?: string
+  leftItems: string[]
+  rightItems: string[]
+}
+
 export type Block =
   | TextBlock
   | HeadingBlock
@@ -121,6 +162,10 @@ export type Block =
   | ExerciseHeaderBlock
   | BlankLinesBlock
   | ListBlock
+  | QCMBlock
+  | TrueFalseBlock
+  | FillBlankBlock
+  | MatchingBlock
 
 export interface WorksheetMeta {
   title: string
@@ -155,4 +200,15 @@ export const LEVELS = [
   '6ème', '5ème', '4ème', '3ème',
   '2nde', '1ère', 'Terminale',
   'BTS', 'Licence', 'Master', 'Autre'
+]
+
+export const FONT_OPTIONS = [
+  { label: 'Défaut (Inter)', value: '' },
+  { label: 'Comic Sans MS', value: '"Comic Sans MS", cursive' },
+  { label: 'Georgia (serif)', value: 'Georgia, serif' },
+  { label: 'Courier New (machine)', value: '"Courier New", monospace' },
+  { label: 'Nunito (arrondi)', value: '"Nunito", sans-serif' },
+  { label: 'Caveat (manuscrit)', value: '"Caveat", cursive' },
+  { label: 'Fredoka One (ludique)', value: '"Fredoka One", cursive' },
+  { label: 'Kalam (écriture)', value: '"Kalam", cursive' },
 ]

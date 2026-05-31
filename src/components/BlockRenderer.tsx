@@ -1,4 +1,4 @@
-import type { Block } from '../types/worksheet'
+import type { Block, BaseBlock } from '../types/worksheet'
 import MathRenderer from './MathRenderer'
 import ShapeRenderer from './ShapeRenderer'
 
@@ -7,7 +7,37 @@ interface Props {
   editMode?: boolean
 }
 
+function blockContainerStyle(block: BaseBlock): React.CSSProperties {
+  const style: React.CSSProperties = {}
+  if (block.bg) style.backgroundColor = block.bg
+  if (block.borderColor) {
+    const w = block.borderWidth === 'thick' ? '3px' : block.borderWidth === 'medium' ? '2px' : '1px'
+    style.border = `${w} ${block.borderStyle || 'solid'} ${block.borderColor}`
+  }
+  if (block.fontFamily) style.fontFamily = block.fontFamily
+  return style
+}
+
+function blockContainerClass(block: BaseBlock): string {
+  const pad = block.padding === 'lg' ? 'p-6' : block.padding === 'md' ? 'p-4' : block.padding === 'sm' ? 'p-2' : ''
+  const rad = block.rounded === 'lg' ? 'rounded-xl' : block.rounded === 'md' ? 'rounded-lg' : block.rounded === 'sm' ? 'rounded' : ''
+  return [pad, rad].filter(Boolean).join(' ')
+}
+
+function BlockWrapper({ block, children }: { block: Block; children: React.ReactNode }) {
+  const style = blockContainerStyle(block)
+  const cls = blockContainerClass(block)
+  const hasWrapper = Object.keys(style).length > 0 || cls
+  if (!hasWrapper) return <>{children}</>
+  return <div style={style} className={cls}>{children}</div>
+}
+
 export default function BlockRenderer({ block, editMode = false }: Props) {
+  const inner = renderInner(block, editMode)
+  return <BlockWrapper block={block}>{inner}</BlockWrapper>
+}
+
+function renderInner(block: Block, editMode: boolean) {
   switch (block.type) {
     case 'heading': {
       const Tag = `h${block.level}` as 'h1' | 'h2' | 'h3'
@@ -15,7 +45,7 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
       return (
         <Tag
           className={`${sizes[block.level]} my-2 text-gray-900`}
-          style={{ textAlign: block.align || 'left' }}
+          style={{ textAlign: block.align || 'left', fontFamily: block.fontFamily || undefined }}
         >
           {block.content || <span className="text-gray-300 italic">Titre…</span>}
         </Tag>
@@ -30,7 +60,7 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
             block.fontSize === 'lg' ? 'text-lg' :
             block.fontSize === 'xl' ? 'text-xl' : 'text-base'
           } ${block.bold ? 'font-bold' : ''} ${block.italic ? 'italic' : ''} ${block.underline ? 'underline' : ''}`}
-          style={{ textAlign: block.align || 'left' }}
+          style={{ textAlign: block.align || 'left', fontFamily: block.fontFamily || undefined }}
         >
           {block.content || (editMode ? <span className="text-gray-300 italic">Texte…</span> : '')}
         </p>
@@ -85,7 +115,7 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
     case 'columns':
       return (
         <div
-          className={`my-2 grid gap-${block.gap === 'sm' ? '2' : block.gap === 'lg' ? '8' : '4'}`}
+          className="my-2 grid gap-4"
           style={{ gridTemplateColumns: `repeat(${block.columns}, 1fr)` }}
         >
           {block.content.map((col, i) => (
@@ -102,7 +132,7 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
       const count = block.count || 1
       const items = Array.from({ length: count }, (_, i) => i)
       return (
-        <div className={`my-2 flex flex-wrap gap-2 ${block.arrangement === 'grid' ? 'flex-wrap' : ''}`}>
+        <div className="my-2 flex flex-wrap gap-2">
           {items.map(i => (
             <div key={i} className="flex flex-col items-center gap-1">
               <ShapeRenderer variant={block.variant} color={block.color} size={block.size} />
@@ -128,15 +158,8 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
       )
 
     case 'divider': {
-      const styles = {
-        solid: 'border-solid',
-        dashed: 'border-dashed',
-        dotted: 'border-dotted',
-        double: 'border-double border-b-4',
-      }
-      return (
-        <div className={`my-3 border-t border-gray-400 ${styles[block.style || 'solid']}`} />
-      )
+      const styles = { solid: 'border-solid', dashed: 'border-dashed', dotted: 'border-dotted', double: 'border-double border-b-4' }
+      return <div className={`my-3 border-t border-gray-400 ${styles[block.style || 'solid']}`} />
     }
 
     case 'exercise-header':
@@ -153,18 +176,12 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
                   {block.points} pt{block.points > 1 ? 's' : ''}
                 </span>
               )}
-              {block.duration && (
-                <span className="text-xs text-gray-500">⏱ {block.duration}</span>
-              )}
+              {block.duration && <span className="text-xs text-gray-500">⏱ {block.duration}</span>}
               {block.difficulty && (
-                <span className="text-xs">
-                  {'★'.repeat(block.difficulty)}{'☆'.repeat(3 - block.difficulty)}
-                </span>
+                <span className="text-xs">{'★'.repeat(block.difficulty)}{'☆'.repeat(3 - block.difficulty)}</span>
               )}
             </div>
-            {block.competency && (
-              <p className="text-xs text-gray-500 mt-0.5 italic">{block.competency}</p>
-            )}
+            {block.competency && <p className="text-xs text-gray-500 mt-0.5 italic">{block.competency}</p>}
           </div>
         </div>
       )
@@ -174,11 +191,7 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
       return (
         <div className="my-2 space-y-4">
           {lines.map(i => (
-            <div
-              key={i}
-              className={`w-full h-px ${block.lined ? 'border-b border-gray-400' : 'border-b border-transparent'}`}
-              style={{ marginBottom: '1.5rem' }}
-            />
+            <div key={i} className={`w-full ${block.lined ? 'border-b border-gray-400' : ''}`} style={{ minHeight: '1.8rem' }} />
           ))}
         </div>
       )
@@ -200,6 +213,109 @@ export default function BlockRenderer({ block, editMode = false }: Props) {
             <li key={i} className="text-gray-800 leading-relaxed">{item}</li>
           ))}
         </ul>
+      )
+
+    case 'qcm': {
+      const letters = ['A', 'B', 'C', 'D', 'E', 'F']
+      return (
+        <div className="my-2">
+          <p className="font-medium text-gray-900 mb-2">{block.question || (editMode ? <span className="text-gray-300 italic">Question…</span> : '')}</p>
+          <div className="space-y-1.5 pl-2">
+            {block.options.map((opt, i) => (
+              <div key={i} className="flex items-center gap-2">
+                {block.style === 'letters' ? (
+                  <span className="w-6 h-6 border-2 border-gray-400 rounded-full flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
+                    {letters[i]}
+                  </span>
+                ) : (
+                  <span className="w-5 h-5 border-2 border-gray-400 rounded-full flex-shrink-0" />
+                )}
+                <span className="text-gray-800">{opt || <span className="text-gray-300 italic">Option {i + 1}…</span>}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    case 'true-false':
+      return (
+        <div className="my-2">
+          {block.instruction && <p className="text-sm text-gray-600 mb-2 italic">{block.instruction}</p>}
+          <div className="space-y-2">
+            {block.statements.map((stmt, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <span className="flex-1 text-gray-800">{stmt}</span>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <label className="flex items-center gap-1 text-sm">
+                    <span className="w-5 h-5 border-2 border-gray-400 rounded-full inline-block" />
+                    <span className="text-green-700 font-medium">Vrai</span>
+                  </label>
+                  <label className="flex items-center gap-1 text-sm">
+                    <span className="w-5 h-5 border-2 border-gray-400 rounded-full inline-block" />
+                    <span className="text-red-600 font-medium">Faux</span>
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+
+    case 'fill-blank': {
+      const parts = block.text.split('___')
+      return (
+        <div className="my-2">
+          {block.instruction && <p className="text-sm text-gray-600 mb-2 italic">{block.instruction}</p>}
+          <p className="text-gray-800 leading-loose">
+            {parts.map((part, i) => (
+              <span key={i}>
+                {part}
+                {i < parts.length - 1 && (
+                  <span className="inline-block border-b-2 border-gray-500 min-w-[80px] mx-1">&nbsp;</span>
+                )}
+              </span>
+            ))}
+          </p>
+          {block.showWordBank && block.wordBank && block.wordBank.length > 0 && (
+            <div className="mt-3 p-2 bg-gray-50 border border-gray-200 rounded">
+              <span className="text-xs font-semibold text-gray-500 uppercase mr-2">Mots :</span>
+              {block.wordBank.map((w, i) => (
+                <span key={i} className="inline-block mx-1 px-2 py-0.5 bg-white border border-gray-300 rounded text-sm">{w}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    case 'matching':
+      return (
+        <div className="my-2">
+          {block.instruction && <p className="text-sm text-gray-600 mb-2 italic">{block.instruction}</p>}
+          <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+            <div className="space-y-2">
+              {block.leftItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="w-5 h-5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                  <span className="flex-1 border-b border-gray-300 pb-0.5 text-gray-800">{item}</span>
+                  <span className="text-gray-300">···</span>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              {block.rightItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-gray-300">···</span>
+                  <span className="flex-1 border-b border-gray-300 pb-0.5 text-gray-800">{item}</span>
+                  <span className="w-5 h-5 bg-gray-100 text-gray-500 rounded text-xs font-bold flex items-center justify-center flex-shrink-0">
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )
 
     default:
