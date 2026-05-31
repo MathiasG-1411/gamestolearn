@@ -37,59 +37,46 @@
 
 /* Print styles */
 @media print {
-  .print\:hidden { display: none !important; }
-
-  body, html {
-    background: white !important;
-    font-size: 12pt;
-    overflow: visible !important;
-    height: auto !important;
-  }
-
-  /* Réinitialiser les conteneurs flex/overflow qui coupent le contenu à l'impression */
-  .editor-root {
-    display: block !important;
-    overflow: visible !important;
-    height: auto !important;
-    min-height: 0 !important;
-    background: white !important;
-  }
-
-  .editor-body {
-    display: block !important;
-    overflow: visible !important;
-    height: auto !important;
-  }
-
-  .editor-canvas {
-    display: block !important;
-    overflow: visible !important;
-    height: auto !important;
-    padding: 0 !important;
-  }
-
-  #worksheet-print {
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    border: none !important;   /* le cadre est géré par .page-border-overlay */
-    margin: 0 !important;
-    min-height: auto !important;
-    width: 100% !important;
-  }
 
   @page {
     size: A4;
-    margin: 15mm 15mm 15mm 15mm;
+    margin: 15mm;
   }
 
-  .katex-display {
-    margin: 0.5em 0;
+  /* ── Technique d'isolation : n'afficher que la fiche ─────────
+     On masque tout le body, puis on rend visible uniquement
+     #worksheet-print et ses descendants. C'est la méthode
+     recommandée pour imprimer un élément dans une SPA. */
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #worksheet-print,
+  #worksheet-print * {
+    visibility: visible !important;
+  }
+
+  /* La fiche est positionnée en haut à gauche de la page */
+  #worksheet-print {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    min-height: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    border: none !important;
+    overflow: visible !important;
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   /* ── Cadre répété sur chaque page ───────────────────────────── */
-  /* position:fixed en impression = se répète sur chaque page imprimée */
   .page-border-overlay {
-    display: block;
+    display: block !important;
+    visibility: visible !important;
     position: fixed;
     pointer-events: none;
     z-index: 9999;
@@ -97,50 +84,39 @@
     print-color-adjust: exact;
   }
 
+  .katex-display {
+    margin: 0.5em 0;
+  }
+
   /* ── Gestion des sauts de page ─────────────────────────────── */
 
-  /* Par défaut : chaque bloc refuse d'être coupé en deux */
   .print-block {
     break-inside: avoid;
     page-break-inside: avoid;
+    outline: none !important;
+    box-shadow: none !important;
   }
 
-  /* Les tableaux et grilles peuvent se couper entre lignes,
-     mais jamais à l'intérieur d'une ligne */
   .print-block-table,
   .print-block-rubric {
     break-inside: auto;
     page-break-inside: auto;
   }
+
   .print-block-table tr,
   .print-block-rubric tr {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  /* L'en-tête d'exercice reste toujours avec le bloc suivant */
   .print-block-exercise-header {
     break-after: avoid;
     page-break-after: avoid;
   }
 
-  /* En-tête du document ne se retrouve pas seul en bas d'une page */
   .worksheet-header {
     break-after: avoid;
     page-break-after: avoid;
-  }
-
-  /* Jamais de marge de sélection / ring à l'impression */
-  .print-block {
-    outline: none !important;
-    box-shadow: none !important;
-    background-color: transparent !important;
-  }
-
-  /* Les couleurs de fond explicites des blocs sont conservées */
-  .print-block[style*="background"] {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
   }
 }
 
