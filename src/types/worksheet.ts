@@ -106,6 +106,8 @@ export interface DividerBlock extends BaseBlock {
   style?: 'solid' | 'dashed' | 'dotted' | 'double'
 }
 
+export type AttEnduType = 'S' | 'SF' | 'C'
+
 export interface ExerciseHeaderBlock extends BaseBlock {
   type: 'exercise-header'
   number: number
@@ -113,7 +115,11 @@ export interface ExerciseHeaderBlock extends BaseBlock {
   points?: number
   duration?: string
   difficulty?: 1 | 2 | 3
-  competency?: string
+  // FWB — nouveaux référentiels CPC
+  attendu?: string        // texte de l'attendu du référentiel
+  attenduType?: AttEnduType  // S = Savoir · SF = Savoir-faire · C = Compétence
+  attenduCode?: string    // code UAA (ex : "UAA 3.2 — Mathématiques")
+  competency?: string     // legacy (kept for backward compat)
 }
 
 export interface BlankLinesBlock extends BaseBlock {

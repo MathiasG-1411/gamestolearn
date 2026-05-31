@@ -384,9 +384,41 @@ function renderBlockSpecificEditor(block: Block, update: (patch: Partial<Block>)
               </select>
             </Field>
           </div>
-          <Field label="Compétence visée (optionnel)">
-            <input className={inputCls} value={b.competency || ''} onChange={e => update({ competency: e.target.value })} placeholder="Ex : Calculer avec des fractions" />
-          </Field>
+          {/* FWB — Référentiel CPC */}
+          <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-3 space-y-2">
+            <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Attendu CPC (FWB)</p>
+            <div>
+              <span className="text-xs text-gray-600 block mb-1">Type</span>
+              <div className="flex gap-1.5">
+                {([['S','Savoir','blue'],['SF','Savoir-faire','orange'],['C','Compétence','purple']] as const).map(([val,label,color]) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => update({ attenduType: b.attenduType === val ? undefined : val })}
+                    className={`flex-1 py-1 rounded text-xs font-semibold border transition ${
+                      b.attenduType === val
+                        ? color === 'blue' ? 'bg-blue-600 text-white border-blue-600'
+                          : color === 'orange' ? 'bg-orange-500 text-white border-orange-500'
+                          : 'bg-purple-600 text-white border-purple-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >{val} — {label}</button>
+                ))}
+              </div>
+            </div>
+            <Field label="Texte de l'attendu">
+              <textarea
+                rows={2}
+                className={`${inputCls} resize-none`}
+                value={b.attendu || ''}
+                onChange={e => update({ attendu: e.target.value })}
+                placeholder="Ex : Résoudre des problèmes additifs et multiplicatifs en lien avec la vie quotidienne"
+              />
+            </Field>
+            <Field label="Code UAA (optionnel)">
+              <input className={inputCls} value={b.attenduCode || ''} onChange={e => update({ attenduCode: e.target.value })} placeholder="Ex : UAA 3.2 — Mathématiques" />
+            </Field>
+          </div>
         </div>
       )
     }
