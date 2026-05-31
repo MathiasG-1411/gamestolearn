@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { Worksheet } from '../types/worksheet'
 import { TEMPLATES } from '../data/templates'
@@ -23,6 +24,20 @@ function subjectColor(s: string) {
 }
 
 export default function TemplateGallery({ worksheets, onSelect, onDelete }: Props) {
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    if (confirmId === id) {
+      onDelete(id)
+      setConfirmId(null)
+    } else {
+      setConfirmId(id)
+      // Auto-cancel after 3s if user does nothing
+      setTimeout(() => setConfirmId(prev => prev === id ? null : prev), 3000)
+    }
+  }
+
   const createFromTemplate = (tpl: typeof TEMPLATES[number]) => {
     const ws: Worksheet = {
       ...tpl,
@@ -88,12 +103,20 @@ export default function TemplateGallery({ worksheets, onSelect, onDelete }: Prop
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 flex-1">{ws.meta.title}</h3>
-                      <button
-                        type="button"
-                        onClick={e => { e.stopPropagation(); onDelete(ws.id) }}
-                        className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition text-xs p-1 flex-shrink-0"
-                        title="Supprimer"
-                      >✕</button>
+                      {confirmId === ws.id ? (
+                        <button
+                          type="button"
+                          onClick={e => handleDeleteClick(e, ws.id)}
+                          className="text-xs px-2 py-0.5 rounded-lg bg-red-500 text-white font-semibold flex-shrink-0 animate-pulse"
+                        >Supprimer ?</button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={e => handleDeleteClick(e, ws.id)}
+                          className="text-gray-300 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition text-sm p-1 flex-shrink-0"
+                          title="Supprimer"
+                        >🗑</button>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {ws.meta.subject && (
