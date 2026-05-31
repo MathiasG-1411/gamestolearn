@@ -307,6 +307,18 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
           </span>
         )}
 
+        {/* Header edit button */}
+        {!previewMode && (
+          <button
+            onClick={() => setEditingHeader(v => !v)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex-shrink-0 ${editingHeader ? 'bg-violet-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            title="Modifier l'en-tête"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h8"/></svg>
+            <span className="hidden md:inline">En-tête</span>
+          </button>
+        )}
+
         {/* Divider */}
         <div className="h-6 w-px bg-gray-200 mx-1" />
 
@@ -463,31 +475,40 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
         </div>
       </div>
 
+      {/* Header editor — slide-down panel above the canvas */}
+      {editingHeader && !previewMode && (
+        <div className="bg-gray-50 border-b border-gray-200 print:hidden overflow-y-auto" style={{ maxHeight: '55vh' }}>
+          <div className="max-w-2xl mx-auto px-4 py-4">
+            <WorksheetHeader
+              meta={worksheet.meta}
+              editMode
+              onChange={meta => onChange({ ...worksheet, meta, updatedAt: new Date().toISOString() })}
+              onClose={() => setEditingHeader(false)}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-1 overflow-hidden">
         {/* Main canvas */}
         <div className="flex-1 overflow-y-auto p-4">
           <div className="max-w-[210mm] mx-auto">
             <div id="worksheet-print" className="bg-white shadow-lg rounded-lg p-8 min-h-[297mm]">
-              {/* Header zone — click to edit */}
+              {/* Header — always view-only inside the sheet */}
               {!previewMode && !editingHeader ? (
                 <div
                   onClick={() => setEditingHeader(true)}
-                  className="group relative rounded-xl cursor-pointer -mx-2 -mt-2 px-2 pt-2 pb-1 mb-2 hover:bg-indigo-50/60 transition print:hidden"
+                  className="group relative rounded-xl cursor-pointer -mx-2 -mt-2 px-2 pt-2 pb-1 mb-2 hover:bg-violet-50/60 transition print:hidden"
                   title="Cliquer pour modifier l'en-tête"
                 >
                   <WorksheetHeader meta={worksheet.meta} />
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition flex items-center gap-1 bg-indigo-600 text-white text-xs px-2 py-1 rounded-lg shadow">
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition flex items-center gap-1 bg-violet-600 text-white text-xs px-2 py-1 rounded-lg shadow">
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                     Modifier l'en-tête
                   </div>
                 </div>
               ) : (
-                <WorksheetHeader
-                  meta={worksheet.meta}
-                  editMode={!previewMode && editingHeader}
-                  onChange={meta => onChange({ ...worksheet, meta, updatedAt: new Date().toISOString() })}
-                  onClose={() => setEditingHeader(false)}
-                />
+                <WorksheetHeader meta={worksheet.meta} />
               )}
 
               <div className="space-y-1">
