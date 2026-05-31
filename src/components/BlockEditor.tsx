@@ -86,17 +86,17 @@ function BlockStyleSection({ block, onChange }: { block: Block; onChange: (block
               <input type="color" value={block.bg || '#ffffff'} onChange={e => update({ bg: e.target.value })} className="w-6 h-6 rounded cursor-pointer border border-gray-200" title="Couleur personnalisée" />
             </div>
           </Field>
-          <Field label="Bordure">
+          <Field label={block.type === 'exercise-header' ? 'Couleur de l\'en-tête' : 'Bordure'}>
             <div className="flex gap-2">
               <div className="flex items-center gap-1">
-                <button type="button" onClick={() => update({ borderColor: undefined, borderWidth: undefined, borderStyle: undefined })} className="w-6 h-6 border border-gray-200 rounded text-xs text-gray-400 hover:border-gray-400" title="Aucune bordure">✕</button>
+                <button type="button" onClick={() => update({ borderColor: undefined, borderWidth: undefined, borderStyle: undefined })} className="w-6 h-6 border border-gray-200 rounded text-xs text-gray-400 hover:border-gray-400" title="Couleur par défaut">✕</button>
                 {COLORS.slice(0, 6).map(c => (
                   <button key={c} type="button" onClick={() => update({ borderColor: c, borderWidth: block.borderWidth || 'medium', borderStyle: block.borderStyle || 'solid' })} className={`w-5 h-5 rounded-full border-2 transition ${block.borderColor === c ? 'border-indigo-500 scale-110' : 'border-transparent'}`} style={{ backgroundColor: c }} />
                 ))}
-                <input type="color" value={block.borderColor || '#000000'} onChange={e => update({ borderColor: e.target.value, borderWidth: block.borderWidth || 'medium', borderStyle: block.borderStyle || 'solid' })} className="w-5 h-5 rounded cursor-pointer" />
+                <input type="color" value={block.borderColor || '#6366f1'} onChange={e => update({ borderColor: e.target.value, borderWidth: block.borderWidth || 'medium', borderStyle: block.borderStyle || 'solid' })} className="w-5 h-5 rounded cursor-pointer" />
               </div>
             </div>
-            {block.borderColor && (
+            {block.borderColor && block.type !== 'exercise-header' && (
               <div className="flex gap-2 mt-1">
                 <select className={`${selectCls} flex-1`} value={block.borderWidth || 'medium'} onChange={e => update({ borderWidth: e.target.value as 'thin'|'medium'|'thick' })}>
                   <option value="thin">Fine</option>

@@ -28,6 +28,17 @@ function blockContainerClass(block: BaseBlock): string {
 function BlockWrapper({ block, children }: { block: Block; children: React.ReactNode }) {
   const style = blockContainerStyle(block)
   const cls = blockContainerClass(block)
+
+  // exercise-header gère sa propre bordure en interne — ne pas doubler avec un cadre extérieur
+  if (block.type === 'exercise-header') {
+    const wrapperStyle: React.CSSProperties = {}
+    if (block.bg) wrapperStyle.backgroundColor = block.bg
+    if (block.fontFamily) wrapperStyle.fontFamily = block.fontFamily
+    const hasWrapper = Object.keys(wrapperStyle).length > 0 || cls
+    if (!hasWrapper) return <>{children}</>
+    return <div style={wrapperStyle} className={cls}>{children}</div>
+  }
+
   const hasWrapper = Object.keys(style).length > 0 || cls
   if (!hasWrapper) return <>{children}</>
   return <div style={style} className={cls}>{children}</div>
@@ -174,6 +185,8 @@ function renderInner(block: Block, editMode: boolean) {
     }
 
     case 'exercise-header': {
+      const accent = block.borderColor || '#6366f1'  // indigo-500 par défaut
+      const accentBg = block.bg || '#eef2ff'          // indigo-50 par défaut
       const attenduBadge: Record<string, { bg: string; text: string; label: string }> = {
         S:  { bg: 'bg-blue-100',   text: 'text-blue-800',   label: 'Savoir' },
         SF: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Savoir-faire' },
@@ -181,16 +194,22 @@ function renderInner(block: Block, editMode: boolean) {
       }
       const badge = block.attenduType ? attenduBadge[block.attenduType] : null
       return (
-        <div className="my-3 bg-indigo-50 border-l-4 border-indigo-500 px-4 py-3 rounded-r">
+        <div
+          className="my-3 border-l-4 px-4 py-3 rounded-r"
+          style={{ borderLeftColor: accent, backgroundColor: accentBg }}
+        >
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+            <div
+              className="flex-shrink-0 w-8 h-8 text-white rounded-full flex items-center justify-center font-bold text-sm"
+              style={{ backgroundColor: accent }}
+            >
               {block.number}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-gray-900">{block.title || 'Exercice'}</span>
                 {block.points !== undefined && (
-                  <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full font-medium">
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium text-white" style={{ backgroundColor: accent }}>
                     {block.points} pt{block.points > 1 ? 's' : ''}
                   </span>
                 )}
@@ -206,8 +225,10 @@ function renderInner(block: Block, editMode: boolean) {
               </div>
               {block.attendu && (
                 <div className="mt-1.5 flex items-start gap-1.5">
-                  <span className="text-xs font-semibold text-indigo-500 mt-0.5 flex-shrink-0">Attendu :</span>
-                  <p className="text-xs text-indigo-700 italic leading-snug">{block.attendu}</p>
+                  <span className="text-xs font-semibold mt-0.5 flex-shrink-0" style={{ color: accent }}>Attendu :</span>
+                  <p className="text-xs italic leading-snug" style={{ color: accent }}>
+                    {block.attendu}
+                  </p>
                 </div>
               )}
               {block.attenduCode && (
