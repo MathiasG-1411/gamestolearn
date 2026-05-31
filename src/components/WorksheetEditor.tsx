@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { Worksheet, Block, BlockType } from '../types/worksheet'
 import { saveToBank } from '../utils/storage'
@@ -10,47 +10,69 @@ import QuestionBank from './QuestionBank'
 import PresentationMode from './PresentationMode'
 import AIGenerator from './AIGenerator'
 import { printWorksheet } from '../utils/export'
+import { exportPDF } from '../utils/export-pdf'
+import { exportDOCX } from '../utils/export-docx'
 
 interface Props {
   worksheet: Worksheet
   onChange: (ws: Worksheet) => void
   onBack: () => void
   onDifferentiate: (ws: Worksheet) => void
-  darkMode?: boolean
   onToggleDark?: () => void
+  darkMode?: boolean
 }
 
-const BLOCK_MENU: { type: BlockType; label: string; icon: string; desc: string; group: string }[] = [
-  { type: 'exercise-header', label: 'Exercice', icon: '📝', desc: 'En-tête numéroté avec points', group: 'Structure' },
-  { type: 'heading', label: 'Titre', icon: 'T', desc: 'Titre de section H1/H2/H3', group: 'Structure' },
-  { type: 'divider', label: 'Séparateur', icon: '—', desc: 'Ligne de séparation', group: 'Structure' },
-  { type: 'text', label: 'Texte', icon: '¶', desc: 'Paragraphe de texte libre', group: 'Contenu' },
-  { type: 'math', label: 'Formule maths', icon: '∑', desc: 'Expression LaTeX (fractions…)', group: 'Contenu' },
-  { type: 'numbered-list', label: 'Liste numérotée', icon: '1.', desc: 'Liste avec numéros', group: 'Contenu' },
-  { type: 'bullet-list', label: 'Liste à puces', icon: '•', desc: 'Liste avec puces', group: 'Contenu' },
-  { type: 'image', label: 'Image', icon: '🖼', desc: 'Image depuis URL', group: 'Contenu' },
-  { type: 'exercise-item', label: 'Question / Réponse', icon: '❓', desc: 'Zone question + réponse flexible', group: 'Exercices' },
-  { type: 'qcm', label: 'QCM', icon: '🔘', desc: 'Questions à choix multiples', group: 'Exercices' },
-  { type: 'true-false', label: 'Vrai / Faux', icon: '✓✗', desc: 'Affirmations à cocher', group: 'Exercices' },
-  { type: 'fill-blank', label: 'Texte à trous', icon: '___', desc: 'Texte avec trous à compléter', group: 'Exercices' },
-  { type: 'matching', label: 'Relier', icon: '↔', desc: 'Relier deux colonnes', group: 'Exercices' },
-  { type: 'blank-lines', label: 'Lignes réponse', icon: '≡', desc: 'Lignes pour écrire', group: 'Exercices' },
-  { type: 'rubric', label: 'Grille d\'évaluation', icon: '📋', desc: 'Critères avec niveaux', group: 'Exercices' },
-  { type: 'table', label: 'Tableau', icon: '▦', desc: 'Tableau lignes/colonnes', group: 'Mise en page' },
-  { type: 'columns', label: 'Colonnes', icon: '⊞', desc: 'Texte en colonnes', group: 'Mise en page' },
-  { type: 'shape', label: 'Formes', icon: '◆', desc: 'Formes géométriques colorées', group: 'Mise en page' },
+// SVG icon per block type
+const BLOCK_ICONS: Record<string, JSX.Element> = {
+  'exercise-header': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="3" width="16" height="5" rx="1.5"/><path strokeLinecap="round" d="M2 11h10M2 14h7"/></svg>,
+  'heading': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" d="M4 5v10M16 5v10M4 10h12"/></svg>,
+  'divider': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" d="M3 10h14"/><circle cx="10" cy="10" r="1.2" fill="currentColor" stroke="none"/></svg>,
+  'text': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" d="M4 6h12M4 9h10M4 12h12M4 15h7"/></svg>,
+  'math': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" d="M4 7h5M4 13h5m3-7l2 6 2-6M15 7v6"/></svg>,
+  'numbered-list': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" d="M8 6h8M8 10h8M8 14h8"/><text x="2" y="9" fontSize="6" fill="currentColor" stroke="none">1</text><text x="2" y="13.5" fontSize="6" fill="currentColor" stroke="none">2</text><text x="2" y="18" fontSize="6" fill="currentColor" stroke="none">3</text></svg>,
+  'bullet-list': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="4" cy="6.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="10.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="14.5" r="1.2" fill="currentColor" stroke="none"/><path strokeLinecap="round" d="M8 6.5h8M8 10.5h8M8 14.5h8"/></svg>,
+  'image': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="4" width="16" height="12" rx="1.5"/><circle cx="7" cy="8.5" r="1.5" fill="none"/><path strokeLinecap="round" d="M2 14l4-4 3 3 3-3 4 4"/></svg>,
+  'exercise-item': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" d="M4 5h12M4 8h10"/><rect x="2" y="11" width="16" height="5" rx="1" strokeDasharray="2 1"/></svg>,
+  'qcm': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="5" cy="6" r="2"/><circle cx="5" cy="10" r="2"/><circle cx="5" cy="14" r="2"/><circle cx="5" cy="6" r="0.8" fill="currentColor" stroke="none"/><path strokeLinecap="round" d="M10 6h6M10 10h6M10 14h6"/></svg>,
+  'true-false': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="5" width="5" height="4" rx="1"/><rect x="2" y="12" width="5" height="4" rx="1"/><path strokeLinecap="round" d="M10 7h6M10 14h6"/><path strokeLinecap="round" strokeWidth="2" d="M3.5 7.2l1 1 1.5-1.5"/></svg>,
+  'fill-blank': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" d="M2 7h4M8 7h2M12 7h4M2 11h7"/><path strokeLinecap="round" strokeWidth="2.5" d="M11.5 11h4.5"/></svg>,
+  'matching': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="5" cy="7" r="2"/><circle cx="5" cy="13" r="2"/><circle cx="15" cy="7" r="2"/><circle cx="15" cy="13" r="2"/><path strokeLinecap="round" strokeDasharray="1.5 1.5" d="M7 7h6M7 13h6"/></svg>,
+  'blank-lines': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" d="M2 7h16M2 10h16M2 13h16M2 16h12"/></svg>,
+  'rubric': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="3" width="16" height="14" rx="1.5"/><path d="M2 7h16M6 7v10"/><path strokeLinecap="round" d="M9 10h6M9 13h6"/></svg>,
+  'table': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="3" width="16" height="14" rx="1"/><path d="M2 8h16M8 8v9M12 8v9"/></svg>,
+  'columns': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="3" width="7" height="14" rx="1"/><rect x="11" y="3" width="7" height="14" rx="1"/></svg>,
+  'shape': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="7" cy="13" r="3"/><rect x="11" y="4" width="6" height="6" rx="1"/><path strokeLinecap="round" d="M3 9l4-6 4 6"/></svg>,
+}
+
+const GROUP_COLORS: Record<string, { bg: string; icon: string; label: string }> = {
+  'Structure': { bg: 'bg-slate-100 group-hover:bg-slate-200', icon: 'text-slate-600 group-hover:text-slate-800', label: 'text-slate-500' },
+  'Contenu': { bg: 'bg-blue-50 group-hover:bg-blue-100', icon: 'text-blue-600 group-hover:text-blue-700', label: 'text-blue-400' },
+  'Exercices': { bg: 'bg-violet-50 group-hover:bg-violet-100', icon: 'text-violet-600 group-hover:text-violet-700', label: 'text-violet-400' },
+  'Mise en page': { bg: 'bg-emerald-50 group-hover:bg-emerald-100', icon: 'text-emerald-600 group-hover:text-emerald-700', label: 'text-emerald-400' },
+}
+
+const BLOCK_MENU: { type: BlockType; label: string; desc: string; group: string }[] = [
+  { type: 'exercise-header', label: 'Exercice', desc: 'En-tête numéroté avec points', group: 'Structure' },
+  { type: 'heading', label: 'Titre', desc: 'Titre de section H1/H2/H3', group: 'Structure' },
+  { type: 'divider', label: 'Séparateur', desc: 'Ligne de séparation', group: 'Structure' },
+  { type: 'text', label: 'Texte', desc: 'Paragraphe de texte libre', group: 'Contenu' },
+  { type: 'math', label: 'Formule', desc: 'Expression LaTeX (fractions…)', group: 'Contenu' },
+  { type: 'numbered-list', label: 'Liste n°', desc: 'Liste avec numéros', group: 'Contenu' },
+  { type: 'bullet-list', label: 'Liste •', desc: 'Liste avec puces', group: 'Contenu' },
+  { type: 'image', label: 'Image', desc: 'Image depuis URL', group: 'Contenu' },
+  { type: 'exercise-item', label: 'Question', desc: 'Zone question + réponse', group: 'Exercices' },
+  { type: 'qcm', label: 'QCM', desc: 'Choix multiples', group: 'Exercices' },
+  { type: 'true-false', label: 'Vrai/Faux', desc: 'Affirmations à cocher', group: 'Exercices' },
+  { type: 'fill-blank', label: 'À trous', desc: 'Texte avec espaces', group: 'Exercices' },
+  { type: 'matching', label: 'Relier', desc: 'Relier deux colonnes', group: 'Exercices' },
+  { type: 'blank-lines', label: 'Lignes', desc: 'Lignes pour écrire', group: 'Exercices' },
+  { type: 'rubric', label: 'Grille', desc: 'Critères avec niveaux', group: 'Exercices' },
+  { type: 'table', label: 'Tableau', desc: 'Lignes/colonnes', group: 'Mise en page' },
+  { type: 'columns', label: 'Colonnes', desc: 'Texte en colonnes', group: 'Mise en page' },
+  { type: 'shape', label: 'Formes', desc: 'Formes géométriques', group: 'Mise en page' },
 ]
 
 const GROUPS = ['Structure', 'Contenu', 'Exercices', 'Mise en page']
-const MAX_HISTORY = 50
-
-// Page border presets
-const BORDER_PRESETS = [
-  { label: 'Classique fin', color: '#374151', width: 1, style: 'solid' as const, offset: 8 },
-  { label: 'Double trait', color: '#1e1b4b', width: 3, style: 'double' as const, offset: 10 },
-  { label: 'Pointillés', color: '#6366f1', width: 2, style: 'dashed' as const, offset: 10 },
-  { label: 'Sans cadre', color: '', width: 0, style: 'solid' as const, offset: 8 },
-]
 
 function createDefaultBlock(type: BlockType): Block {
   const id = uuidv4()
@@ -66,8 +88,8 @@ function createDefaultBlock(type: BlockType): Block {
     case 'columns': return { id, type, columns: 2, content: ['', ''] }
     case 'numbered-list': return { id, type, items: ['Premier élément', 'Deuxième élément'] }
     case 'bullet-list': return { id, type, items: ['Premier élément', 'Deuxième élément'] }
-    case 'blank-lines': return { id, type, count: 4, lined: true }
-    case 'shape': return { id, type, variant: 'rectangle', color: '#4f46e5', size: 'md', count: 1 }
+    case 'blank-lines': return { id, type, count: 4, lined: true, lineHeight: 36, paperStyle: 'lines' }
+    case 'shape': return { id, type, variant: 'rectangle', color: '#4f46e5', size: 'md', sizeN: 80, count: 1, filled: true }
     case 'divider': return { id, type, style: 'solid' }
     case 'exercise-header': return { id, type, number: 1, title: 'Exercice', points: 4 }
     case 'image': return { id, type, src: '', alt: '', width: 'full', align: 'center' }
@@ -84,305 +106,7 @@ function createDefaultBlock(type: BlockType): Block {
   }
 }
 
-function blockPreviewLabel(block: Block): string {
-  const menuItem = BLOCK_MENU.find(m => m.type === block.type)
-  const icon = menuItem?.icon ?? '·'
-  switch (block.type) {
-    case 'text': return `${icon} ${(block.content || '').slice(0, 30) || 'Texte vide'}`
-    case 'heading': return `${icon} ${(block.content || '').slice(0, 30) || 'Titre vide'}`
-    case 'exercise-header': return `${icon} Ex. ${block.number} — ${block.title}`
-    case 'qcm': return `${icon} ${(block.question || '').slice(0, 28) || 'QCM'}`
-    case 'true-false': return `${icon} Vrai/Faux (${block.statements.length})`
-    case 'fill-blank': return `${icon} ${(block.instruction || 'Texte à trous').slice(0, 28)}`
-    case 'matching': return `${icon} Relier (${block.leftItems.length})`
-    case 'exercise-item': return `${icon} ${(block.questionText || '').slice(0, 28) || 'Question'}`
-    case 'table': return `${icon} Tableau ${block.rows[0]?.length ?? 0}×${block.rows.length}`
-    case 'columns': return `${icon} Colonnes ×${block.columns}`
-    case 'math': return `${icon} ${block.latex.slice(0, 25)}`
-    case 'image': return `${icon} Image`
-    case 'divider': return `${icon} Séparateur`
-    case 'blank-lines': return `${icon} Lignes ×${block.count}`
-    case 'rubric': return `${icon} Grille (${block.criteria.length} critères)`
-    case 'shape': return `${icon} ${block.variant} ×${block.count ?? 1}`
-    default: return menuItem?.label ?? 'Bloc'
-  }
-}
-
-// --- Left Sidebar ---
-interface SidebarProps {
-  blocks: Block[]
-  selectedId: string | null
-  onAddBlock: (type: BlockType) => void
-  onSelectBlock: (id: string) => void
-  onReorderBlocks: (blocks: Block[]) => void
-  collapsed: boolean
-  onToggle: () => void
-  sidebarTab: 'palette' | 'nav'
-  onTabChange: (t: 'palette' | 'nav') => void
-}
-
-function EditorSidebar({ blocks, selectedId, onAddBlock, onSelectBlock, onReorderBlocks, collapsed, onToggle, sidebarTab, onTabChange }: SidebarProps) {
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
-  const dragNavRef = useRef<number | null>(null)
-  const [navDragOver, setNavDragOver] = useState<number | null>(null)
-
-  const toggleGroup = (g: string) => setCollapsedGroups(prev => ({ ...prev, [g]: !prev[g] }))
-
-  const handleNavDragStart = (idx: number) => { dragNavRef.current = idx }
-  const handleNavDragOver = (e: React.DragEvent, idx: number) => {
-    e.preventDefault()
-    if (navDragOver !== idx) setNavDragOver(idx)
-  }
-  const handleNavDrop = (e: React.DragEvent, dropIdx: number) => {
-    e.preventDefault()
-    const dragIdx = dragNavRef.current
-    if (dragIdx === null || dragIdx === dropIdx) { dragNavRef.current = null; setNavDragOver(null); return }
-    const newBlocks = [...blocks]
-    const [item] = newBlocks.splice(dragIdx, 1)
-    newBlocks.splice(dropIdx, 0, item)
-    onReorderBlocks(newBlocks)
-    dragNavRef.current = null
-    setNavDragOver(null)
-  }
-
-  const blockRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (selectedId && sidebarTab === 'nav') {
-      const el = document.getElementById(`nav-block-${selectedId}`)
-      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-    }
-  }, [selectedId, sidebarTab])
-
-  return (
-    <>
-      {/* Overlay backdrop on mobile when open */}
-      {!collapsed && (
-        <div
-          className="fixed inset-0 bg-black/40 z-30 md:hidden"
-          onClick={onToggle}
-        />
-      )}
-
-      {/* Sidebar panel */}
-      <div
-        ref={blockRef}
-        className={[
-          'flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 print:hidden transition-all duration-200 overflow-hidden',
-          'fixed md:relative z-40 md:z-auto top-0 bottom-0 left-0',
-          collapsed ? 'w-0 md:w-0' : 'w-64 md:w-64',
-        ].join(' ')}
-        style={{ height: '100%' }}
-      >
-        {!collapsed && (
-          <>
-            {/* Tab header */}
-            <div className="flex items-center border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-              <button
-                onClick={() => onTabChange('palette')}
-                className={`flex-1 py-2.5 text-xs font-semibold transition ${sidebarTab === 'palette' ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-              >
-                + Palette
-              </button>
-              <button
-                onClick={() => onTabChange('nav')}
-                className={`flex-1 py-2.5 text-xs font-semibold transition ${sidebarTab === 'nav' ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-              >
-                ☰ Blocs
-              </button>
-              <button onClick={onToggle} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-sm">✕</button>
-            </div>
-
-            {/* Tab content */}
-            <div className="flex-1 overflow-y-auto">
-              {sidebarTab === 'palette' && (
-                <div className="p-2 space-y-1">
-                  {GROUPS.map(group => (
-                    <div key={group}>
-                      <button
-                        onClick={() => toggleGroup(group)}
-                        className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-gray-200 transition rounded"
-                      >
-                        <span>{group}</span>
-                        <span className="text-gray-300 dark:text-gray-600">{collapsedGroups[group] ? '▶' : '▼'}</span>
-                      </button>
-                      {!collapsedGroups[group] && (
-                        <div className="space-y-0.5 mb-1">
-                          {BLOCK_MENU.filter(m => m.group === group).map(item => (
-                            <button
-                              key={item.type}
-                              onClick={() => onAddBlock(item.type)}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/40 text-left transition group"
-                            >
-                              <span className="w-6 h-6 bg-gray-100 dark:bg-gray-700 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-800 rounded flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 flex-shrink-0">{item.icon}</span>
-                              <div className="min-w-0">
-                                <div className="text-xs font-medium text-gray-800 dark:text-gray-200 leading-tight">{item.label}</div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {sidebarTab === 'nav' && (
-                <div className="p-2 space-y-0.5">
-                  {blocks.length === 0 && (
-                    <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-6">Aucun bloc dans la fiche.</p>
-                  )}
-                  {blocks.map((block, idx) => (
-                    <div
-                      id={`nav-block-${block.id}`}
-                      key={block.id}
-                      draggable
-                      onDragStart={() => handleNavDragStart(idx)}
-                      onDragOver={e => handleNavDragOver(e, idx)}
-                      onDrop={e => handleNavDrop(e, idx)}
-                      onDragEnd={() => { dragNavRef.current = null; setNavDragOver(null) }}
-                      onClick={() => {
-                        onSelectBlock(block.id)
-                        const el = document.getElementById(`block-${block.id}`)
-                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      }}
-                      className={[
-                        'flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition text-xs',
-                        selectedId === block.id
-                          ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
-                        navDragOver === idx ? 'border-t-2 border-blue-400' : '',
-                      ].join(' ')}
-                    >
-                      <span className="w-5 h-5 rounded bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 flex items-center justify-center text-xs font-mono flex-shrink-0 cursor-grab">{idx + 1}</span>
-                      <span className="truncate flex-1 font-medium leading-snug">{blockPreviewLabel(block)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    </>
-  )
-}
-
-// --- Page Border Panel ---
-interface PageBorderPanelProps {
-  meta: { pageBorderColor?: string; pageBorderWidth?: number; pageBorderStyle?: 'solid' | 'dashed' | 'dotted' | 'double' | 'ridge' | 'groove'; pageBorderOffset?: number }
-  onChange: (patch: { pageBorderColor?: string; pageBorderWidth?: number; pageBorderStyle?: 'solid' | 'dashed' | 'dotted' | 'double' | 'ridge' | 'groove'; pageBorderOffset?: number }) => void
-  onClose: () => void
-}
-
-function PageBorderPanel({ meta, onChange, onClose }: PageBorderPanelProps) {
-  const color = meta.pageBorderColor ?? '#374151'
-  const width = meta.pageBorderWidth ?? 0
-  const style = meta.pageBorderStyle ?? 'solid'
-  const offset = meta.pageBorderOffset ?? 8
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 print:hidden" onClick={onClose}>
-      <div
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 w-80 space-y-4"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">📄 Cadre de page</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm">✕</button>
-        </div>
-
-        {/* Presets */}
-        <div>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Présets</p>
-          <div className="grid grid-cols-2 gap-2">
-            {BORDER_PRESETS.map(p => (
-              <button
-                key={p.label}
-                onClick={() => onChange({ pageBorderColor: p.color, pageBorderWidth: p.width, pageBorderStyle: p.style, pageBorderOffset: p.offset })}
-                className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-700 dark:text-gray-300 transition"
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Color */}
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Couleur du cadre</span>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={color}
-              onChange={e => onChange({ pageBorderColor: e.target.value })}
-              className="w-10 h-8 rounded cursor-pointer border border-gray-200 dark:border-gray-600"
-            />
-            <input
-              type="text"
-              value={color}
-              onChange={e => onChange({ pageBorderColor: e.target.value })}
-              className="flex-1 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono"
-            />
-          </div>
-        </label>
-
-        {/* Width */}
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Épaisseur : {width} mm</span>
-          <input
-            type="range"
-            min={0}
-            max={8}
-            value={width}
-            onChange={e => onChange({ pageBorderWidth: Number(e.target.value) })}
-            className="w-full accent-indigo-500"
-          />
-        </label>
-
-        {/* Style */}
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Style</span>
-          <select
-            value={style}
-            onChange={e => onChange({ pageBorderStyle: e.target.value as 'solid' | 'dashed' | 'dotted' | 'double' | 'ridge' | 'groove' })}
-            className="border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-          >
-            <option value="solid">Trait plein</option>
-            <option value="dashed">Tirets</option>
-            <option value="dotted">Pointillés</option>
-            <option value="double">Double trait</option>
-            <option value="ridge">Relief</option>
-            <option value="groove">Gravé</option>
-          </select>
-        </label>
-
-        {/* Offset */}
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Marge intérieure : {offset} mm</span>
-          <input
-            type="range"
-            min={5}
-            max={20}
-            value={offset}
-            onChange={e => onChange({ pageBorderOffset: Number(e.target.value) })}
-            className="w-full accent-indigo-500"
-          />
-        </label>
-
-        {/* Remove border */}
-        <button
-          onClick={() => onChange({ pageBorderWidth: 0, pageBorderColor: '' })}
-          className="w-full text-xs py-2 rounded-lg border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
-        >
-          Retirer le cadre
-        </button>
-      </div>
-    </div>
-  )
-}
-
-export default function WorksheetEditor({ worksheet, onChange, onBack, onDifferentiate, darkMode, onToggleDark }: Props) {
+export default function WorksheetEditor({ worksheet, onChange, onBack, onDifferentiate, onToggleDark, darkMode }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
@@ -394,6 +118,22 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
   const [toast, setToast] = useState<string | null>(null)
   const [showPageBorder, setShowPageBorder] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [exportingPDF, setExportingPDF] = useState(false)
+  const [exportingDOCX, setExportingDOCX] = useState(false)
+
+  const handleExportPDF = async () => {
+    setExportingPDF(true)
+    setShowMoreMenu(false)
+    try { await exportPDF(worksheet) } catch (e) { showToast('Erreur export PDF') }
+    setExportingPDF(false)
+  }
+
+  const handleExportDOCX = async () => {
+    setExportingDOCX(true)
+    setShowMoreMenu(false)
+    try { await exportDOCX(worksheet) } catch (e) { showToast('Erreur export DOCX') }
+    setExportingDOCX(false)
+  }
   const moreMenuRef = useRef<HTMLDivElement>(null)
 
   // Sidebar state — collapsed by default on mobile
@@ -444,80 +184,8 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
     setTimeout(() => setToast(null), 2500)
   }
 
-  const showSavedBadge = useCallback(() => {
-    setSavedBadge(true)
-    if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
-    savedTimerRef.current = setTimeout(() => setSavedBadge(false), 2000)
-  }, [])
-
-  const pushHistory = useCallback((blocks: Block[]) => {
-    if (skipHistoryPushRef.current) {
-      skipHistoryPushRef.current = false
-      return
-    }
-    const idx = historyIndexRef.current
-    const newHistory = historyRef.current.slice(0, idx + 1)
-    newHistory.push(blocks)
-    if (newHistory.length > MAX_HISTORY) newHistory.shift()
-    historyRef.current = newHistory
-    historyIndexRef.current = newHistory.length - 1
-    forceRender(n => n + 1)
-  }, [])
-
-  const updateBlocks = useCallback((blocks: Block[]) => {
-    pushHistory(blocks)
-    onChange({ ...worksheet, blocks, updatedAt: new Date().toISOString() })
-    showSavedBadge()
-  }, [onChange, worksheet, pushHistory, showSavedBadge])
-
-  const updateBlock = useCallback((id: string, block: Block) => {
-    updateBlocks(worksheet.blocks.map(b => b.id === id ? block : b))
-  }, [updateBlocks, worksheet.blocks])
-
-  // Feature 6: Undo
-  const undo = useCallback(() => {
-    const idx = historyIndexRef.current
-    if (idx <= 0) return
-    const newIdx = idx - 1
-    skipHistoryPushRef.current = true
-    historyIndexRef.current = newIdx
-    forceRender(n => n + 1)
-    const blocks = historyRef.current[newIdx]
-    onChange({ ...worksheet, blocks, updatedAt: new Date().toISOString() })
-    showSavedBadge()
-  }, [onChange, worksheet, showSavedBadge])
-
-  // Feature 6: Redo
-  const redo = useCallback(() => {
-    const idx = historyIndexRef.current
-    if (idx >= historyRef.current.length - 1) return
-    const newIdx = idx + 1
-    skipHistoryPushRef.current = true
-    historyIndexRef.current = newIdx
-    forceRender(n => n + 1)
-    const blocks = historyRef.current[newIdx]
-    onChange({ ...worksheet, blocks, updatedAt: new Date().toISOString() })
-    showSavedBadge()
-  }, [onChange, worksheet, showSavedBadge])
-
-  // Feature 6: Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
-      if (isInput) return
-      const mod = e.ctrlKey || e.metaKey
-      if (mod && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault()
-        undo()
-      } else if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault()
-        redo()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [undo, redo])
+  const updateBlocks = (blocks: Block[]) => onChange({ ...worksheet, blocks, updatedAt: new Date().toISOString() })
+  const updateBlock = (id: string, block: Block) => updateBlocks(worksheet.blocks.map(b => b.id === id ? block : b))
 
   const addBlock = (type: BlockType) => {
     const newBlock = createDefaultBlock(type)
@@ -579,159 +247,189 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
     }
   }
 
-  // Feature 5: Total points
-  const totalPoints = worksheet.blocks
-    .filter(b => b.type === 'exercise-header')
-    .reduce((sum, b) => {
-      const pts = (b as { points?: number }).points
-      return sum + (typeof pts === 'number' ? pts : 0)
-    }, 0)
+  // Total points across exercise headers
+  const totalPoints = worksheet.blocks.reduce((sum, b) => {
+    if (b.type === 'exercise-header' && typeof b.points === 'number') return sum + b.points
+    return sum
+  }, 0)
 
   const copyPoints = async () => {
-    try {
-      await navigator.clipboard.writeText(`${totalPoints} pts`)
-      showToast(`📋 "${totalPoints} pts" copié !`)
-    } catch { /* ignore */ }
+    const lines = worksheet.blocks
+      .filter(b => b.type === 'exercise-header' && typeof (b as { points?: number }).points === 'number')
+      .map(b => `Exercice ${(b as { number?: number }).number ?? ''}: ${(b as { points?: number }).points}pt`)
+    const text = `Total: ${totalPoints}pt\n` + lines.join('\n')
+    try { await navigator.clipboard.writeText(text) } catch { /* ignore */ }
+    showToast(`📋 Points copiés (${totalPoints}pt)`)
   }
 
-  // Feature 7: Drag & drop handlers
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    e.stopPropagation()
-    dragIndexRef.current = index
-    e.dataTransfer.effectAllowed = 'move'
-    setIsDragging(true)
+  // Undo / Redo
+  const canUndo = historyIndexRef.current > 0
+  const canRedo = historyIndexRef.current < historyRef.current.length - 1
+
+  const undo = () => {
+    if (!canUndo) return
+    historyIndexRef.current -= 1
+    skipHistoryPushRef.current = true
+    onChange({ ...worksheet, blocks: historyRef.current[historyIndexRef.current] })
+    forceRender(n => n + 1)
   }
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    if (dragOverIndex !== index) setDragOverIndex(index)
-  }
-
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault()
-    const dragIndex = dragIndexRef.current
-    if (dragIndex === null || dragIndex === dropIndex) {
-      dragIndexRef.current = null
-      setDragOverIndex(null)
-      setIsDragging(false)
-      return
-    }
-    const blocks = [...worksheet.blocks]
-    const [dragged] = blocks.splice(dragIndex, 1)
-    blocks.splice(dropIndex, 0, dragged)
-    updateBlocks(blocks)
-    dragIndexRef.current = null
-    setDragOverIndex(null)
-    setIsDragging(false)
-  }
-
-  const handleDragEnd = () => {
-    dragIndexRef.current = null
-    setDragOverIndex(null)
-    setIsDragging(false)
+  const redo = () => {
+    if (!canRedo) return
+    historyIndexRef.current += 1
+    skipHistoryPushRef.current = true
+    onChange({ ...worksheet, blocks: historyRef.current[historyIndexRef.current] })
+    forceRender(n => n + 1)
   }
 
   const selected = worksheet.blocks.find(b => b.id === selectedId)
 
-  const canUndo = historyIndexRef.current > 0
-  const canRedo = historyIndexRef.current < historyRef.current.length - 1
-
-  // Build page border style
-  const borderW = Number(worksheet.meta.pageBorderWidth ?? 0)
-  const borderColor = worksheet.meta.pageBorderColor ?? ''
-  const borderStyle = worksheet.meta.pageBorderStyle ?? 'solid'
-  const borderOffset = Number(worksheet.meta.pageBorderOffset ?? 8)
-  const hasBorder = borderW > 0 && !!borderColor
-
-  // Screen: border drawn on the container (single-page view looks fine)
-  // Print:  border drawn by .page-border-overlay (position:fixed → repeats on every page)
-  const printAreaStyle: React.CSSProperties = hasBorder
-    ? { padding: `${borderOffset + borderW}mm`, boxSizing: 'border-box' as const }
-    : {}
-
-  // Injected <style> overrides for the print overlay (values come from controlled inputs — safe)
-  const borderPrintCSS = hasBorder
-    ? `@media print {
-        .page-border-overlay {
-          top: ${borderOffset}mm;
-          left: ${borderOffset}mm;
-          right: ${borderOffset}mm;
-          bottom: ${borderOffset}mm;
-          border: ${borderW}mm ${borderStyle} ${borderColor};
-        }
-      }`
-    : ''
-
   return (
-    <div className="editor-root min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-2 rounded-lg shadow-lg print:hidden">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg print:hidden">
           {toast}
         </div>
       )}
 
-      {/* Top bar — single row, no wrap */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-2 py-2 flex items-center gap-1 sticky top-0 z-30 print:hidden">
-        {/* Sidebar toggle */}
-        {!previewMode && (
-          <button
-            onClick={toggleSidebar}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 flex-shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center"
-            title={sidebarCollapsed ? 'Ouvrir le panneau' : 'Fermer le panneau'}
-          >
-            {sidebarCollapsed ? '☰' : '✕'}
-          </button>
-        )}
-
+      {/* Top bar */}
+      <div className="bg-white border-b border-gray-200 px-2 py-1.5 flex items-center gap-1 sticky top-0 z-30 print:hidden">
         {/* Back */}
-        <button onClick={onBack} className="flex items-center gap-1 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 flex-shrink-0 transition" title="Retour à l'accueil">
-          <img src="/favicon.svg" alt="" className="w-7 h-7 rounded-lg" />
+        <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 flex-shrink-0 transition" title="Retour">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
 
         {/* Title */}
-        <div className="flex-1 min-w-0 px-1">
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">
+        <div className="flex-1 min-w-0 pl-1">
+          <p className="text-sm font-semibold text-gray-800 truncate leading-tight">
             {worksheet.meta.title}
-            {worksheet.version && <span className="ml-1.5 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-full font-medium">V{worksheet.version}</span>}
+            {worksheet.version && <span className="ml-2 text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium align-middle">v{worksheet.version}</span>}
           </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 truncate leading-tight hidden sm:block">{worksheet.meta.subject}{worksheet.meta.level ? ` · ${worksheet.meta.level}` : ''}</p>
+          <p className="text-[11px] text-gray-400 leading-tight hidden sm:block">{worksheet.meta.subject}{worksheet.meta.level ? ` · ${worksheet.meta.level}` : ''}</p>
         </div>
 
-        {/* Always-visible: saved, points, undo, redo, preview */}
-        {savedBadge && <span className="text-xs text-gray-400 dark:text-gray-500 px-1 select-none hidden sm:inline">✓</span>}
+        {/* Divider */}
+        <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block" />
+
+        {/* Undo / Redo */}
+        <button onClick={undo} disabled={!canUndo} className="p-2 rounded-lg disabled:opacity-25 hover:bg-gray-100 text-gray-500 transition flex-shrink-0" title="Annuler (Ctrl+Z)">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h13a5 5 0 010 10h-1"/></svg>
+        </button>
+        <button onClick={redo} disabled={!canRedo} className="p-2 rounded-lg disabled:opacity-25 hover:bg-gray-100 text-gray-500 transition flex-shrink-0" title="Rétablir (Ctrl+Y)">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H8a5 5 0 000 10h1"/></svg>
+        </button>
+
+        {/* Points badge */}
         {totalPoints > 0 && (
-          <button onClick={copyPoints} className="px-2 py-1 bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-700 flex-shrink-0 hidden sm:flex" title="Total des points">
+          <button onClick={copyPoints} className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-semibold border border-indigo-200 flex-shrink-0 hidden sm:flex items-center gap-1 hover:bg-indigo-100 transition" title="Copier les points">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
             {totalPoints}pt
           </button>
         )}
-        <button onClick={undo} disabled={!canUndo} className="p-2 rounded-lg disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition flex-shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center" title="Annuler (Ctrl+Z)">↩</button>
-        <button onClick={redo} disabled={!canRedo} className="p-2 rounded-lg disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition flex-shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center" title="Rétablir (Ctrl+Y)">↪</button>
 
+        {/* Saved badge */}
+        {savedBadge && (
+          <span className="text-[11px] text-green-600 font-medium px-1 select-none hidden sm:inline-flex items-center gap-0.5">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+            Sauvegardé
+          </span>
+        )}
+
+        {/* Header edit button */}
+        {!previewMode && (
+          <button
+            onClick={() => setEditingHeader(v => !v)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex-shrink-0 ${editingHeader ? 'bg-violet-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            title="Modifier l'en-tête"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h8"/></svg>
+            <span className="hidden md:inline">En-tête</span>
+          </button>
+        )}
+
+        {/* Divider */}
+        <div className="h-6 w-px bg-gray-200 mx-1" />
+
+        {/* Preview toggle */}
         <button
           onClick={() => setPreviewMode(!previewMode)}
-          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex-shrink-0 ${previewMode ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex-shrink-0 ${previewMode ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          title={previewMode ? 'Mode édition' : 'Aperçu'}
         >
-          {previewMode ? '✏️' : '👁'}
+          {previewMode ? (
+            <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg><span className="hidden md:inline">Éditer</span></>
+          ) : (
+            <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg><span className="hidden md:inline">Aperçu</span></>
+          )}
         </button>
 
-        {/* Print — visible on desktop */}
-        <button onClick={printWorksheet} className="hidden sm:flex px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition flex-shrink-0 items-center gap-1">
-          🖨 <span className="hidden md:inline">Imprimer</span>
-        </button>
+        {/* Divider */}
+        <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block" />
 
-        {/* Desktop extra buttons */}
+        {/* Export group */}
+        <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
+          <button onClick={printWorksheet} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 transition border border-gray-200" title="Imprimer">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            <span className="hidden lg:inline">Imprimer</span>
+          </button>
+          <button onClick={handleExportPDF} disabled={exportingPDF} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white transition shadow-sm" title="Exporter en PDF">
+            {exportingPDF ? (
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            )}
+            PDF
+          </button>
+          <button onClick={handleExportDOCX} disabled={exportingDOCX} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white transition shadow-sm" title="Exporter en Word">
+            {exportingDOCX ? (
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><text x="2" y="17" fontSize="14" fontWeight="bold" fill="white">W</text></svg>
+            )}
+            Word
+          </button>
+        </div>
+
+        {/* Tools group — desktop */}
         {!previewMode && (
-          <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
-            <button onClick={() => setShowAI(true)} className="px-2.5 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg text-xs font-bold transition shadow-sm">✨ IA</button>
-            <button onClick={() => setShowBank(!showBank)} className="p-2 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition" title="Banque">📚</button>
-            <button onClick={() => setShowPresentation(true)} className="p-2 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition" title="Présentation">🎯</button>
-            <button onClick={shareWorksheet} className="p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition" title="Partager">📤</button>
-            <button onClick={() => onDifferentiate(worksheet)} className="px-2 py-1.5 text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/50 rounded-lg text-xs font-medium transition border border-teal-200 dark:border-teal-700" title="Version différenciée">⊕ B</button>
-            <button onClick={() => setCorrectionMode(!correctionMode)} className={`px-2 py-1.5 rounded-lg text-xs font-medium transition border ${correctionMode ? 'bg-green-600 text-white border-green-600' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-700 hover:bg-green-100'}`}>✓</button>
-            <button onClick={() => setShowPageBorder(true)} className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Cadre de page">📄</button>
-            {onToggleDark && <button onClick={onToggleDark} className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">{darkMode ? '☀️' : '🌙'}</button>}
+          <div className="hidden sm:flex items-center gap-0.5 flex-shrink-0 ml-1">
+            <div className="h-6 w-px bg-gray-200 mr-1" />
+            <button onClick={() => setShowAI(true)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white transition shadow-sm">
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              IA
+            </button>
+            <button onClick={() => setShowBank(!showBank)} className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 transition" title="Banque de questions">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            </button>
+            <button onClick={() => setShowPresentation(true)} className="p-2 rounded-lg text-purple-600 hover:bg-purple-50 transition" title="Mode présentation">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+            </button>
+            <button onClick={shareWorksheet} className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition" title="Partager par lien">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+            </button>
+            <button onClick={() => onDifferentiate(worksheet)} className="p-2 rounded-lg text-teal-600 hover:bg-teal-50 transition" title="Version différenciée">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            </button>
+            <button
+              onClick={() => setCorrectionMode(!correctionMode)}
+              className={`p-2 rounded-lg transition ${correctionMode ? 'bg-green-100 text-green-700' : 'text-gray-500 hover:bg-gray-100'}`}
+              title="Mode corrigé"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </button>
+            <button onClick={() => setShowPageBorder(true)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition" title="Cadre de page">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            </button>
+            {onToggleDark && (
+              <button onClick={onToggleDark} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition" title={darkMode ? 'Mode clair' : 'Mode sombre'}>
+                {darkMode ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                )}
+              </button>
+            )}
           </div>
         )}
 
@@ -739,121 +437,134 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
         <div ref={moreMenuRef} className="relative sm:hidden flex-shrink-0">
           <button
             onClick={() => setShowMoreMenu(v => !v)}
-            className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition min-w-[36px] min-h-[36px] flex items-center justify-center font-bold text-lg"
-          >⋮</button>
+            className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition flex items-center justify-center"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
           {showMoreMenu && (
-            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 z-50 min-w-[200px]" onClick={() => setShowMoreMenu(false)}>
-              <button onClick={printWorksheet} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">🖨 Imprimer</button>
-              <button onClick={() => setShowAI(true)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-medium">✨ Générer avec l'IA</button>
-              <button onClick={() => setShowBank(!showBank)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">📚 Banque de questions</button>
-              <button onClick={() => setShowPresentation(true)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">🎯 Mode présentation</button>
-              <button onClick={shareWorksheet} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">📤 Partager par lien</button>
-              <button onClick={() => onDifferentiate(worksheet)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">⊕ Créer une version B</button>
-              <button onClick={() => setCorrectionMode(!correctionMode)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
-                {correctionMode ? '✅ Masquer le corrigé' : '✓ Afficher le corrigé'}
+            <div className="absolute right-0 top-full mt-1 bg-white rounded-2xl shadow-2xl border border-gray-100 py-1.5 z-50 min-w-[220px]" onClick={() => setShowMoreMenu(false)}>
+              <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Export</p>
+              <button onClick={printWorksheet} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                Imprimer
               </button>
-              <button onClick={() => setShowPageBorder(true)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">📄 Cadre de page</button>
-              {totalPoints > 0 && <button onClick={copyPoints} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">🏅 Copier les points ({totalPoints}pt)</button>}
-              {onToggleDark && <button onClick={onToggleDark} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">{darkMode ? '☀️ Mode clair' : '🌙 Mode sombre'}</button>}
+              <button onClick={handleExportPDF} disabled={exportingPDF} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                <svg className="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                {exportingPDF ? 'Export PDF…' : 'Exporter en PDF'}
+              </button>
+              <button onClick={handleExportDOCX} disabled={exportingDOCX} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                {exportingDOCX ? 'Export Word…' : 'Exporter en Word'}
+              </button>
+              <div className="border-t border-gray-100 my-1" />
+              <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Outils</p>
+              <button onClick={() => setShowAI(true)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-indigo-600 hover:bg-indigo-50 font-medium">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                Générer avec l'IA
+              </button>
+              <button onClick={() => setShowBank(!showBank)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                Banque de questions
+              </button>
+              <button onClick={() => setShowPresentation(true)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                Mode présentation
+              </button>
+              <button onClick={shareWorksheet} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                Partager par lien
+              </button>
+              <button onClick={() => onDifferentiate(worksheet)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                Créer une version B
+              </button>
+              <div className="border-t border-gray-100 my-1" />
+              <button onClick={() => setCorrectionMode(!correctionMode)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {correctionMode ? 'Masquer le corrigé' : 'Afficher le corrigé'}
+              </button>
+              <button onClick={() => setShowPageBorder(true)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                Cadre de page
+              </button>
+              {totalPoints > 0 && (
+                <button onClick={copyPoints} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                  <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  Copier les points ({totalPoints}pt)
+                </button>
+              )}
+              {onToggleDark && (
+                <button onClick={onToggleDark} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                  {darkMode ? 'Mode clair' : 'Mode sombre'}
+                </button>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      <div className="editor-body flex flex-1 overflow-hidden relative">
-        {/* Left sidebar */}
-        {!previewMode && (
-          <EditorSidebar
-            blocks={worksheet.blocks}
-            selectedId={selectedId}
-            onAddBlock={addBlock}
-            onSelectBlock={id => setSelectedId(id)}
-            onReorderBlocks={updateBlocks}
-            collapsed={sidebarCollapsed}
-            onToggle={toggleSidebar}
-            sidebarTab={sidebarTab}
-            onTabChange={setSidebarTab}
-          />
-        )}
+      {/* Header editor — slide-down panel above the canvas */}
+      {editingHeader && !previewMode && (
+        <div className="bg-gray-50 border-b border-gray-200 print:hidden overflow-y-auto" style={{ maxHeight: '55vh' }}>
+          <div className="max-w-2xl mx-auto px-4 py-4">
+            <WorksheetHeader
+              meta={worksheet.meta}
+              editMode
+              onChange={meta => onChange({ ...worksheet, meta, updatedAt: new Date().toISOString() })}
+              onClose={() => setEditingHeader(false)}
+            />
+          </div>
+        </div>
+      )}
 
+      <div className="flex flex-1 overflow-hidden">
         {/* Main canvas */}
-        <div className="editor-canvas flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4">
           <div className="max-w-[210mm] mx-auto">
-            {/* Inject print-specific overlay positioning */}
-            {hasBorder && <style dangerouslySetInnerHTML={{ __html: borderPrintCSS }} />}
-
-            <div
-              id="worksheet-print"
-              className="bg-white shadow-lg rounded-lg min-h-[297mm] relative"
-              style={hasBorder ? printAreaStyle : { padding: '2rem' }}
-            >
-              {/* Screen: decorative border frame (not repeated on print — overlay handles print) */}
-              {hasBorder && (
+            <div id="worksheet-print" className="bg-white shadow-lg rounded-lg p-8 min-h-[297mm]">
+              {/* Header — always view-only inside the sheet */}
+              {!previewMode && !editingHeader ? (
                 <div
-                  className="absolute inset-0 rounded-lg pointer-events-none print:hidden"
-                  style={{ border: `${borderW}mm ${borderStyle} ${borderColor}` }}
-                  aria-hidden="true"
-                />
-              )}
-              {/* Print: position:fixed overlay that repeats on every printed page */}
-              {hasBorder && <div className="page-border-overlay" aria-hidden="true" />}
-
-              <WorksheetHeader
-                meta={worksheet.meta}
-                editMode={!previewMode && editingHeader}
-                onChange={meta => onChange({ ...worksheet, meta, updatedAt: new Date().toISOString() })}
-                onClose={() => setEditingHeader(false)}
-              />
-
-              {!previewMode && !editingHeader && (
-                <button onClick={() => setEditingHeader(true)} className="text-xs text-indigo-500 hover:text-indigo-700 mb-4 print:hidden underline">
-                  ✏️ Modifier l'en-tête
-                </button>
+                  onClick={() => setEditingHeader(true)}
+                  className="group relative rounded-xl cursor-pointer -mx-2 -mt-2 px-2 pt-2 pb-1 mb-2 hover:bg-violet-50/60 transition print:hidden"
+                  title="Cliquer pour modifier l'en-tête"
+                >
+                  <WorksheetHeader meta={worksheet.meta} />
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition flex items-center gap-1 bg-violet-600 text-white text-xs px-2 py-1 rounded-lg shadow">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    Modifier l'en-tête
+                  </div>
+                </div>
+              ) : (
+                <WorksheetHeader meta={worksheet.meta} />
               )}
 
               <div className="space-y-1">
-                {worksheet.blocks.map((block, index) => {
-                  const isDragSource = isDragging && dragIndexRef.current === index
-                  const isDropTarget = dragOverIndex === index && dragIndexRef.current !== null && dragIndexRef.current !== index
-                  return (
-                    <div
-                      key={block.id}
-                      id={`block-${block.id}`}
-                      draggable={!previewMode}
-                      onDragStart={e => handleDragStart(e, index)}
-                      onDragOver={e => handleDragOver(e, index)}
-                      onDrop={e => handleDrop(e, index)}
-                      onDragEnd={handleDragEnd}
-                      onClick={() => !previewMode && setSelectedId(block.id)}
-                      className={[
-                        'relative group rounded transition',
-                        `print-block print-block-${block.type}`,
-                        !previewMode ? 'hover:ring-2 hover:ring-indigo-200 cursor-pointer' : '',
-                        selectedId === block.id && !previewMode ? 'ring-2 ring-indigo-400 bg-indigo-50/30' : '',
-                        isDragSource ? 'opacity-40' : '',
-                        isDropTarget ? 'border-t-2 border-blue-500' : '',
-                      ].filter(Boolean).join(' ')}
-                    >
-                      {!previewMode && (
-                        <div className={`absolute -right-1 -top-1 gap-1 z-10 print:hidden ${selectedId === block.id ? 'flex md:flex' : 'hidden group-hover:flex'}`}>
-                          <span className="w-7 h-7 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded shadow text-xs flex items-center justify-center cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 select-none" title="Glisser" onMouseDown={e => e.stopPropagation()}>⠿</span>
-                          <button type="button" onClick={e => { e.stopPropagation(); moveBlock(block.id, -1) }} className="w-7 h-7 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-600" title="Monter">↑</button>
-                          <button type="button" onClick={e => { e.stopPropagation(); moveBlock(block.id, 1) }} className="w-7 h-7 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-600" title="Descendre">↓</button>
-                          <button type="button" onClick={e => { e.stopPropagation(); duplicateBlock(block.id) }} className="w-7 h-7 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-600" title="Dupliquer">⧉</button>
-                          <button type="button" onClick={e => { e.stopPropagation(); deleteBlock(block.id) }} className="w-7 h-7 bg-white dark:bg-gray-700 border border-red-200 dark:border-red-800 rounded shadow text-xs text-red-500 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/30" title="Supprimer">✕</button>
-                        </div>
-                      )}
-                      <div className="px-1 py-0.5">
-                        <BlockRenderer block={block} editMode={!previewMode} correctionMode={correctionMode} />
+                {worksheet.blocks.map(block => (
+                  <div
+                    key={block.id}
+                    onClick={() => !previewMode && setSelectedId(block.id)}
+                    className={`relative group rounded transition ${!previewMode ? 'hover:ring-2 hover:ring-indigo-200 cursor-pointer' : ''} ${selectedId === block.id && !previewMode ? 'ring-2 ring-indigo-400 bg-indigo-50/30' : ''}`}
+                  >
+                    {!previewMode && (
+                      <div className="absolute -right-1 -top-1 hidden group-hover:flex gap-1 z-10 print:hidden">
+                        <button type="button" onClick={e => { e.stopPropagation(); moveBlock(block.id, -1) }} className="w-6 h-6 bg-white border border-gray-200 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50" title="Monter">↑</button>
+                        <button type="button" onClick={e => { e.stopPropagation(); moveBlock(block.id, 1) }} className="w-6 h-6 bg-white border border-gray-200 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50" title="Descendre">↓</button>
+                        <button type="button" onClick={e => { e.stopPropagation(); duplicateBlock(block.id) }} className="w-6 h-6 bg-white border border-gray-200 rounded shadow text-xs flex items-center justify-center hover:bg-gray-50" title="Dupliquer">⧉</button>
+                        <button type="button" onClick={e => { e.stopPropagation(); saveToBankAndNotify(block) }} className="w-6 h-6 bg-white border border-amber-200 rounded shadow text-xs text-amber-500 flex items-center justify-center hover:bg-amber-50" title="Sauvegarder dans la banque">⭐</button>
+                        <button type="button" onClick={e => { e.stopPropagation(); deleteBlock(block.id) }} className="w-6 h-6 bg-white border border-red-200 rounded shadow text-xs text-red-500 flex items-center justify-center hover:bg-red-50" title="Supprimer">✕</button>
                       </div>
+                    )}
+                    <div className="px-1 py-0.5">
+                      <BlockRenderer block={block} editMode={!previewMode} correctionMode={correctionMode} />
                     </div>
-                  )
-                })}
+                  </div>
+                ))}
               </div>
 
               {!previewMode && (
                 <div className="mt-4 print:hidden">
-                  {/* Mobile: show "+" add button. Desktop: hidden since sidebar has palette */}
                   <button
                     onClick={() => setShowAddMenu(!showAddMenu)}
                     className="w-full border-2 border-dashed border-indigo-200 hover:border-indigo-400 text-indigo-400 hover:text-indigo-600 rounded-lg py-3 text-sm font-medium transition"
@@ -866,19 +577,24 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
                         <div key={group} className="mb-4 last:mb-0">
                           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{group}</p>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                            {BLOCK_MENU.filter(m => m.group === group).map(item => (
-                              <button
-                                key={item.type}
-                                onClick={() => addBlock(item.type)}
-                                className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-indigo-50 text-left transition group"
-                              >
-                                <span className="w-7 h-7 bg-gray-100 group-hover:bg-indigo-100 rounded flex items-center justify-center text-xs font-bold text-gray-600 group-hover:text-indigo-700 flex-shrink-0">{item.icon}</span>
-                                <div>
-                                  <div className="text-xs font-medium text-gray-800 leading-tight">{item.label}</div>
-                                  <div className="text-xs text-gray-400 leading-tight hidden sm:block">{item.desc}</div>
-                                </div>
-                              </button>
-                            ))}
+                            {BLOCK_MENU.filter(m => m.group === group).map(item => {
+                              const colors = GROUP_COLORS[group] || GROUP_COLORS['Contenu']
+                              return (
+                                <button
+                                  key={item.type}
+                                  onClick={() => addBlock(item.type)}
+                                  className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-gray-50 text-left transition group"
+                                >
+                                  <span className={`w-7 h-7 ${colors.bg} rounded-lg flex items-center justify-center flex-shrink-0 transition p-1.5 ${colors.icon}`}>
+                                    {BLOCK_ICONS[item.type] || <svg viewBox="0 0 20 20" fill="currentColor"><rect x="3" y="3" width="14" height="14" rx="2"/></svg>}
+                                  </span>
+                                  <div>
+                                    <div className="text-xs font-medium text-gray-800 leading-tight">{item.label}</div>
+                                    <div className="text-[10px] text-gray-400 leading-tight hidden sm:block">{item.desc}</div>
+                                  </div>
+                                </button>
+                              )
+                            })}
                           </div>
                         </div>
                       ))}
@@ -890,56 +606,26 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
           </div>
         </div>
 
-        {/* Right panel — desktop only */}
+        {/* Right panel */}
         {!previewMode && selected && (
-          <div className="hidden md:flex flex-col w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto flex-shrink-0 print:hidden">
+          <div className="w-72 bg-white border-l border-gray-200 overflow-y-auto flex-shrink-0 print:hidden">
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                <h3 className="font-semibold text-gray-900 text-sm">
                   {BLOCK_MENU.find(m => m.type === selected.type)?.label || 'Bloc'}
                 </h3>
-                <button onClick={() => setSelectedId(null)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-sm">✕</button>
+                <button onClick={() => setSelectedId(null)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
               </div>
               <BlockEditor block={selected} onChange={block => updateBlock(selected.id, block)} />
-              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
-                <button onClick={() => duplicateBlock(selected.id)} className="flex-1 text-xs py-2 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-600">⧉</button>
-                <button onClick={() => saveToBankAndNotify(selected)} className="flex-1 text-xs py-2 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-lg border border-amber-200 dark:border-amber-700">⭐</button>
-                <button onClick={() => deleteBlock(selected.id)} className="flex-1 text-xs py-2 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-700">✕</button>
+              <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
+                <button onClick={() => duplicateBlock(selected.id)} className="flex-1 text-xs py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200">⧉ Dupliquer</button>
+                <button onClick={() => saveToBankAndNotify(selected)} className="flex-1 text-xs py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200">⭐ Banque</button>
+                <button onClick={() => deleteBlock(selected.id)} className="flex-1 text-xs py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200">✕</button>
               </div>
             </div>
           </div>
         )}
       </div>
-
-      {/* Mobile block editor — bottom sheet */}
-      {!previewMode && selected && (
-        <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end print:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setSelectedId(null)} />
-          <div className="relative bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl flex flex-col" style={{ maxHeight: '78vh' }}>
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1 cursor-pointer flex-shrink-0" onClick={() => setSelectedId(null)}>
-              <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
-            </div>
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-              <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
-                {BLOCK_MENU.find(m => m.type === selected.type)?.label || 'Bloc'}
-              </h3>
-              <div className="flex items-center gap-1">
-                <button onClick={() => moveBlock(selected.id, -1)} className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm" title="Monter">↑</button>
-                <button onClick={() => moveBlock(selected.id, 1)} className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm" title="Descendre">↓</button>
-                <button onClick={() => duplicateBlock(selected.id)} className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm" title="Dupliquer">⧉</button>
-                <button onClick={() => { deleteBlock(selected.id); setSelectedId(null) }} className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 text-sm" title="Supprimer">🗑</button>
-                <button onClick={() => setSelectedId(null)} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-bold">✕</button>
-              </div>
-            </div>
-            {/* Scrollable editor */}
-            <div className="overflow-y-auto flex-1 p-4" style={{ WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'] }}>
-              <BlockEditor block={selected} onChange={block => updateBlock(selected.id, block)} />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Question bank drawer */}
       {showBank && <QuestionBank onInsert={insertBlock} onClose={() => setShowBank(false)} />}
@@ -960,15 +646,6 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
             showToast(`✨ ${blocks.length} blocs insérés depuis l'IA`)
           }}
           onClose={() => setShowAI(false)}
-        />
-      )}
-
-      {/* Page border panel */}
-      {showPageBorder && (
-        <PageBorderPanel
-          meta={worksheet.meta}
-          onChange={patch => onChange({ ...worksheet, meta: { ...worksheet.meta, ...patch }, updatedAt: new Date().toISOString() })}
-          onClose={() => setShowPageBorder(false)}
         />
       )}
     </div>

@@ -44,12 +44,19 @@ export default function AIGenerator({ defaultSubject, defaultLevel, onInsert, on
     }
   }, [])
 
+  // Auto-save whenever provider or key changes so user never has to re-enter
+  useEffect(() => {
+    if (cfg.apiKey.trim()) {
+      saveAIConfig(cfg)
+    }
+  }, [cfg.apiKey, cfg.provider])
+
   const toggleType = (t: string) => {
     setTypes(prev => prev.includes(t) ? prev.length > 1 ? prev.filter(x => x !== t) : prev : [...prev, t])
   }
 
   const saveCfg = () => {
-    saveAIConfig(cfg)
+    if (cfg.apiKey.trim()) saveAIConfig(cfg)
     setShowKeySetup(false)
   }
 
@@ -135,15 +142,22 @@ export default function AIGenerator({ defaultSubject, defaultLevel, onInsert, on
                     value={cfg.apiKey}
                     onChange={e => setCfg(c => ({ ...c, apiKey: e.target.value }))}
                     placeholder="AIza… ou gsk_…"
-                    autoComplete="off"
+                    autoComplete="current-password"
+                    name="api-key"
                   />
+                  {cfg.apiKey.trim() && (
+                    <p className="text-xs text-green-600 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+                      Clé sauvegardée automatiquement
+                    </p>
+                  )}
                 </label>
                 <button
                   onClick={saveCfg}
                   disabled={!cfg.apiKey.trim()}
                   className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-medium rounded-xl text-sm transition"
                 >
-                  Enregistrer la clé
+                  Confirmer et continuer
                 </button>
               </div>
             </div>

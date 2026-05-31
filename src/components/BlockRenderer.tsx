@@ -28,17 +28,6 @@ function blockContainerClass(block: BaseBlock): string {
 function BlockWrapper({ block, children }: { block: Block; children: React.ReactNode }) {
   const style = blockContainerStyle(block)
   const cls = blockContainerClass(block)
-
-  // exercise-header gère sa propre bordure en interne — ne pas doubler avec un cadre extérieur
-  if (block.type === 'exercise-header') {
-    const wrapperStyle: React.CSSProperties = {}
-    if (block.bg) wrapperStyle.backgroundColor = block.bg
-    if (block.fontFamily) wrapperStyle.fontFamily = block.fontFamily
-    const hasWrapper = Object.keys(wrapperStyle).length > 0 || cls
-    if (!hasWrapper) return <>{children}</>
-    return <div style={wrapperStyle} className={cls}>{children}</div>
-  }
-
   const hasWrapper = Object.keys(style).length > 0 || cls
   if (!hasWrapper) return <>{children}</>
   return <div style={style} className={cls}>{children}</div>
@@ -154,11 +143,17 @@ function renderInner(block: Block, editMode: boolean) {
       const count = block.count || 1
       const items = Array.from({ length: count }, (_, i) => i)
       return (
-        <div className="my-2 flex flex-wrap gap-2">
+        <div className="my-2 flex flex-wrap gap-3 items-end">
           {items.map(i => (
             <div key={i} className="flex flex-col items-center gap-1">
-              <ShapeRenderer variant={block.variant} color={block.color} size={block.size} />
-              {block.label && count === 1 && (
+              <ShapeRenderer
+                variant={block.variant}
+                color={block.color}
+                size={block.size}
+                sizeN={block.sizeN}
+                filled={block.filled !== false}
+              />
+              {block.label && (
                 <span className="text-xs text-gray-600">{block.label}</span>
               )}
             </div>
@@ -185,8 +180,6 @@ function renderInner(block: Block, editMode: boolean) {
     }
 
     case 'exercise-header': {
-      const accent = block.borderColor || '#6366f1'  // indigo-500 par défaut
-      const accentBg = block.bg || '#eef2ff'          // indigo-50 par défaut
       const attenduBadge: Record<string, { bg: string; text: string; label: string }> = {
         S:  { bg: 'bg-blue-100',   text: 'text-blue-800',   label: 'Savoir' },
         SF: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Savoir-faire' },
@@ -194,22 +187,16 @@ function renderInner(block: Block, editMode: boolean) {
       }
       const badge = block.attenduType ? attenduBadge[block.attenduType] : null
       return (
-        <div
-          className="my-3 border-l-4 px-4 py-3 rounded-r"
-          style={{ borderLeftColor: accent, backgroundColor: accentBg }}
-        >
+        <div className="my-3 bg-indigo-50 border-l-4 border-indigo-500 px-4 py-3 rounded-r">
           <div className="flex items-start gap-3">
-            <div
-              className="flex-shrink-0 w-8 h-8 text-white rounded-full flex items-center justify-center font-bold text-sm"
-              style={{ backgroundColor: accent }}
-            >
+            <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
               {block.number}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-gray-900">{block.title || 'Exercice'}</span>
                 {block.points !== undefined && (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium text-white" style={{ backgroundColor: accent }}>
+                  <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full font-medium">
                     {block.points} pt{block.points > 1 ? 's' : ''}
                   </span>
                 )}
@@ -223,17 +210,17 @@ function renderInner(block: Block, editMode: boolean) {
                   </span>
                 )}
               </div>
+              {/* Attendu FWB */}
               {block.attendu && (
                 <div className="mt-1.5 flex items-start gap-1.5">
-                  <span className="text-xs font-semibold mt-0.5 flex-shrink-0" style={{ color: accent }}>Attendu :</span>
-                  <p className="text-xs italic leading-snug" style={{ color: accent }}>
-                    {block.attendu}
-                  </p>
+                  <span className="text-xs font-semibold text-indigo-500 mt-0.5 flex-shrink-0">Attendu :</span>
+                  <p className="text-xs text-indigo-700 italic leading-snug">{block.attendu}</p>
                 </div>
               )}
               {block.attenduCode && (
                 <p className="text-xs text-gray-400 mt-0.5">{block.attenduCode}</p>
               )}
+              {/* Legacy competency */}
               {!block.attendu && block.competency && (
                 <p className="text-xs text-gray-500 mt-0.5 italic">{block.competency}</p>
               )}
@@ -244,11 +231,41 @@ function renderInner(block: Block, editMode: boolean) {
     }
 
     case 'blank-lines': {
+      const style = block.paperStyle || (block.lined ? 'lines' : 'none')
+      const lineH = block.lineHeight ?? 36
+      const spacing = block.gridSpacing ?? 20
+
+      if (style === 'grid') {
+        const gridH = block.gridHeight ?? 160
+        return (
+          <div className="my-2 w-full overflow-hidden rounded" style={{ height: gridH }}>
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id={`grid-${block.id}`} width={spacing} height={spacing} patternUnits="userSpaceOnUse">
+                  <path d={`M ${spacing} 0 L 0 0 0 ${spacing}`} fill="none" stroke="#9ca3af" strokeWidth="0.7" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill={`url(#grid-${block.id})`} />
+              <rect width="100%" height="100%" fill="none" stroke="#9ca3af" strokeWidth="0.7" />
+            </svg>
+          </div>
+        )
+      }
+
       const lines = Array.from({ length: block.count }, (_, i) => i)
       return (
-        <div className="my-2 space-y-4">
+        <div className="my-2">
           {lines.map(i => (
-            <div key={i} className={`w-full ${block.lined ? 'border-b border-gray-400' : ''}`} style={{ minHeight: '1.8rem' }} />
+            <div
+              key={i}
+              className="w-full"
+              style={{
+                height: lineH,
+                borderBottom: style === 'lines' ? '1px solid #9ca3af'
+                  : style === 'dotted' ? '1px dashed #9ca3af'
+                  : 'none',
+              }}
+            />
           ))}
         </div>
       )
