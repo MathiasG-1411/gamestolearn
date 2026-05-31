@@ -74,7 +74,7 @@ export default function AIGenerator({ defaultSubject, defaultLevel, onInsert, on
   }
 
   const providerLabel: Record<AIProvider, string> = {
-    gemini: 'Google Gemini 2.0 Flash (gratuit)',
+    gemini: 'Google Gemini 2.5 Flash',
     groq: 'Groq — Llama 3.3 (gratuit)',
   }
 
