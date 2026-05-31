@@ -468,18 +468,26 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
         <div className="flex-1 overflow-y-auto p-4">
           <div className="max-w-[210mm] mx-auto">
             <div id="worksheet-print" className="bg-white shadow-lg rounded-lg p-8 min-h-[297mm]">
-              <WorksheetHeader
-                meta={worksheet.meta}
-                editMode={!previewMode && editingHeader}
-                onChange={meta => onChange({ ...worksheet, meta, updatedAt: new Date().toISOString() })}
-                onClose={() => setEditingHeader(false)}
-              />
-
-              {!previewMode && !editingHeader && (
-                <button onClick={() => setEditingHeader(true)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-600 mb-4 print:hidden px-2 py-1 rounded-lg hover:bg-indigo-50 transition">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                  Modifier l'en-tête
-                </button>
+              {/* Header zone — click to edit */}
+              {!previewMode && !editingHeader ? (
+                <div
+                  onClick={() => setEditingHeader(true)}
+                  className="group relative rounded-xl cursor-pointer -mx-2 -mt-2 px-2 pt-2 pb-1 mb-2 hover:bg-indigo-50/60 transition print:hidden"
+                  title="Cliquer pour modifier l'en-tête"
+                >
+                  <WorksheetHeader meta={worksheet.meta} />
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition flex items-center gap-1 bg-indigo-600 text-white text-xs px-2 py-1 rounded-lg shadow">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    Modifier l'en-tête
+                  </div>
+                </div>
+              ) : (
+                <WorksheetHeader
+                  meta={worksheet.meta}
+                  editMode={!previewMode && editingHeader}
+                  onChange={meta => onChange({ ...worksheet, meta, updatedAt: new Date().toISOString() })}
+                  onClose={() => setEditingHeader(false)}
+                />
               )}
 
               <div className="space-y-1">
