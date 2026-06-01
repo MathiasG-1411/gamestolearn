@@ -248,8 +248,12 @@ export interface WorksheetMeta {
   showScore: boolean
   showName: boolean
   showDate: boolean
-  headerLayout?: 'classic' | 'centered' | 'modern' | 'compact' | 'school'
+  headerLayout?: 'classic' | 'centered' | 'modern' | 'compact' | 'school' | 'bordered'
   accentColor?: string
+  headerFont?: string
+  headerBorderColor?: string
+  headerBorderWidth?: number        // px, 1–8
+  headerBorderStyle?: 'solid' | 'dashed' | 'dotted' | 'double'
 }
 
 export interface Worksheet {
