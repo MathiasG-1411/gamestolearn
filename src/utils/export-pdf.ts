@@ -13,7 +13,10 @@ export async function exportPDF(worksheet: Worksheet): Promise<void> {
     logging: false,
     backgroundColor: '#ffffff',
     // Ignore the fixed page-border-overlay (handled below)
-    ignoreElements: el => el.classList.contains('page-border-overlay'),
+    // Skip UI-only elements: edit overlays, add-block button, action buttons
+    ignoreElements: el =>
+      el.classList.contains('page-border-overlay') ||
+      el.classList.contains('print:hidden'),
   })
 
   const A4_W_MM = 210

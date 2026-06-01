@@ -531,7 +531,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
               {!previewMode && !editingHeader ? (
                 <div
                   onClick={() => setEditingHeader(true)}
-                  className="group relative rounded-xl cursor-pointer -mx-2 -mt-2 px-2 pt-2 pb-1 mb-2 hover:bg-violet-50/60 transition print:hidden"
+                  className="group relative rounded-xl cursor-pointer -mx-2 -mt-2 px-2 pt-2 pb-1 mb-2 hover:bg-violet-50/60 transition"
                   title="Cliquer pour modifier l'en-tête"
                 >
                   <WorksheetHeader meta={worksheet.meta} />
