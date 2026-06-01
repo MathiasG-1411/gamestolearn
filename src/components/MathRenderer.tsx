@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import katex from 'katex'
 
 interface Props {
   latex: string
@@ -12,15 +11,15 @@ export default function MathRenderer({ latex, display = false, className = '' }:
 
   useEffect(() => {
     if (!ref.current) return
-    try {
-      katex.render(latex, ref.current, {
-        displayMode: display,
-        throwOnError: false,
-        trust: true,
-      })
-    } catch {
-      if (ref.current) ref.current.textContent = latex
-    }
+    const el = ref.current
+    import('katex').then(({ default: katex }) => {
+      if (!el) return
+      try {
+        katex.render(latex, el, { displayMode: display, throwOnError: false, trust: true })
+      } catch {
+        el.textContent = latex
+      }
+    })
   }, [latex, display])
 
   return <span ref={ref} className={className} />

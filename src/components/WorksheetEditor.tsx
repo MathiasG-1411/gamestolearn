@@ -10,8 +10,6 @@ import QuestionBank from './QuestionBank'
 import PresentationMode from './PresentationMode'
 import AIGenerator from './AIGenerator'
 import { printWorksheet } from '../utils/export'
-import { exportPDF } from '../utils/export-pdf'
-import { exportDOCX } from '../utils/export-docx'
 
 interface Props {
   worksheet: Worksheet
@@ -124,14 +122,20 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
   const handleExportPDF = async () => {
     setExportingPDF(true)
     setShowMoreMenu(false)
-    try { await exportPDF(worksheet) } catch (e) { showToast('Erreur export PDF') }
+    try {
+      const { exportPDF } = await import('../utils/export-pdf')
+      await exportPDF(worksheet)
+    } catch (e) { showToast('Erreur export PDF') }
     setExportingPDF(false)
   }
 
   const handleExportDOCX = async () => {
     setExportingDOCX(true)
     setShowMoreMenu(false)
-    try { await exportDOCX(worksheet) } catch (e) { showToast('Erreur export DOCX') }
+    try {
+      const { exportDOCX } = await import('../utils/export-docx')
+      await exportDOCX(worksheet)
+    } catch (e) { showToast('Erreur export DOCX') }
     setExportingDOCX(false)
   }
   const moreMenuRef = useRef<HTMLDivElement>(null)

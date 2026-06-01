@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  build: {
+    // export-pdf (jsPDF + html2canvas) and export-docx are lazy-loaded on demand — large size is expected
+    chunkSizeWarningLimit: 700,
+  },
   plugins: [
     react(),
     VitePWA({
