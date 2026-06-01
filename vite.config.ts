@@ -15,7 +15,7 @@ export default defineConfig({
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
-        // Don't cache the SW or manifest themselves
+        cleanupOutdatedCaches: true,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/sw\.js$/, /^\/manifest\.webmanifest$/, /^\/registerSW\.js$/],
       },
