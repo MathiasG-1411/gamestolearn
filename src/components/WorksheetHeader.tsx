@@ -1,5 +1,6 @@
 import type { WorksheetMeta } from '../types/worksheet'
 import { FONT_OPTIONS } from '../types/worksheet'
+import { saveDefaultFont } from '../utils/storage'
 
 interface Props {
   meta: WorksheetMeta
@@ -311,15 +312,18 @@ export default function WorksheetHeader({ meta, editMode = false, onChange, onCl
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <p className="text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Police</p>
-          <select
-            className={selectCls}
-            value={meta.headerFont || ''}
-            onChange={e => update({ headerFont: e.target.value || undefined })}
-          >
-            {FONT_OPTIONS.map(f => (
-              <option key={f.value} value={f.value} style={{ fontFamily: f.value || undefined }}>{f.label}</option>
-            ))}
-          </select>
+          <div className="flex gap-2 items-center">
+            <select
+              className={selectCls}
+              value={meta.headerFont || ''}
+              onChange={e => update({ headerFont: e.target.value || undefined })}
+            >
+              {FONT_OPTIONS.map(f => (
+                <option key={f.value} value={f.value} style={{ fontFamily: f.value || undefined }}>{f.label}</option>
+              ))}
+            </select>
+            <button type="button" onClick={() => saveDefaultFont(meta.headerFont || '')} className="px-2 py-1.5 text-[10px] rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 whitespace-nowrap" title="Définir cette police par défaut pour toutes les nouvelles fiches">💾 Par défaut</button>
+          </div>
         </div>
         <div>
           <p className="text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Couleur accent</p>

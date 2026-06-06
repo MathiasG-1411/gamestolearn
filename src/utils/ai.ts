@@ -16,6 +16,7 @@ export interface AIGenerateParams {
   difficulty: 1 | 2 | 3
   count: number
   additionalInstructions?: string
+  templateBlockTypes?: string[]
 }
 
 const AI_CONFIG_KEY = 'fichespro_ai_config'
@@ -93,13 +94,17 @@ function buildUserPrompt(p: AIGenerateParams): string {
   }
   const types = p.exerciseTypes.map(t => typesDesc[t] || t).join(', ')
 
+  const templateSection = p.templateBlockTypes && p.templateBlockTypes.length > 0
+    ? `\n\nSTRUCTURE IMPOSÉE — génère les blocs EXACTEMENT dans cet ordre et avec ces types (même nombre) :\n${p.templateBlockTypes.join(' → ')}`
+    : ''
+
   return `Génère ${p.count} exercice(s) pour :
 • Matière : ${p.subject}
 • Niveau : ${p.level} (Tronc commun FWB — nouveaux CPC)
 • Thème / Chapitre : ${p.topic}
 • Types d'exercices souhaités : ${types}
 • Difficulté : ${diffLabel}
-${p.additionalInstructions ? `• Instructions spéciales : ${p.additionalInstructions}` : ''}
+${p.additionalInstructions ? `• Instructions spéciales : ${p.additionalInstructions}` : ''}${templateSection}
 
 IMPORTANT :
 - Commence par un bloc exercise-header avec l'attendu CPC exact visé (pas les anciens Socles).

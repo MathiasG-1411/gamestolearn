@@ -3,6 +3,8 @@ import type { Block } from '../types/worksheet'
 import { SUBJECTS, LEVELS } from '../types/worksheet'
 import { loadAIConfig, saveAIConfig, generateExercises } from '../utils/ai'
 import type { AIConfig, AIProvider } from '../utils/ai'
+import { loadAITemplates, deleteAITemplate } from '../utils/storage'
+import type { AITemplate } from '../utils/storage'
 import BlockRenderer from './BlockRenderer'
 
 interface Props {
@@ -34,6 +36,8 @@ export default function AIGenerator({ defaultSubject, defaultLevel, onInsert, on
   const [state, setState] = useState<'idle' | 'loading' | 'preview' | 'error'>('idle')
   const [generated, setGenerated] = useState<Block[]>([])
   const [error, setError] = useState('')
+  const [templates, setTemplates] = useState<AITemplate[]>([])
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
 
   useEffect(() => {
     const saved = loadAIConfig()
@@ -43,6 +47,8 @@ export default function AIGenerator({ defaultSubject, defaultLevel, onInsert, on
       setShowKeySetup(true)
     }
   }, [])
+
+  useEffect(() => setTemplates(loadAITemplates()), [])
 
   // Auto-save whenever provider or key changes so user never has to re-enter
   useEffect(() => {

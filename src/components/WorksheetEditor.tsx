@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { Worksheet, Block, BlockType } from '../types/worksheet'
-import { saveToBank } from '../utils/storage'
+import { saveToBank, loadDefaultFont, saveAITemplate } from '../utils/storage'
+import type { AITemplate } from '../utils/storage'
 import { worksheetToURL } from '../utils/share'
 import BlockRenderer from './BlockRenderer'
 import BlockEditor from './BlockEditor'
@@ -139,6 +140,8 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
     setExportingDOCX(false)
   }
   const moreMenuRef = useRef<HTMLDivElement>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const [pageBreakPx, setPageBreakPx] = useState(0)
 
   // Sidebar state — collapsed by default on mobile
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
@@ -167,6 +170,31 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showMoreMenu])
+
+  // Page break indicator: measure sheet width and compute break position
+  useLayoutEffect(() => {
+    const el = sheetRef.current
+    if (!el) return
+    const update = () => {
+      const width = el.offsetWidth
+      setPageBreakPx(Math.round((267 / 180) * width))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Default font: apply when worksheet changes (new worksheet)
+  useEffect(() => {
+    if (!worksheet.meta.headerFont) {
+      const defaultFont = loadDefaultFont()
+      if (defaultFont) {
+        onChange({ ...worksheet, meta: { ...worksheet.meta, headerFont: defaultFont } })
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [worksheet.id])
 
   // Feature 3: Save indicator
   const [savedBadge, setSavedBadge] = useState(false)
@@ -287,6 +315,19 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
   }
 
   const selected = worksheet.blocks.find(b => b.id === selectedId)
+
+  const saveAsAITemplate = () => {
+    const name = window.prompt('Nom du modèle IA :', worksheet.meta.title)
+    if (!name) return
+    const template: AITemplate = {
+      id: uuidv4(),
+      name,
+      blockTypes: worksheet.blocks.map(b => b.type),
+      createdAt: new Date().toISOString(),
+    }
+    saveAITemplate(template)
+    showToast('💡 Modèle IA sauvegardé')
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -491,6 +532,10 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
                 <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
                 Cadre de page
               </button>
+              <button onClick={saveAsAITemplate} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                <span className="text-base leading-none">💡</span>
+                Sauver comme modèle IA
+              </button>
               {totalPoints > 0 && (
                 <button onClick={copyPoints} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
                   <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -526,7 +571,21 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
         {/* Main canvas */}
         <div className="flex-1 overflow-y-auto p-4">
           <div className="max-w-[210mm] mx-auto">
-            <div id="worksheet-print" className="bg-white shadow-lg rounded-lg p-8 min-h-[297mm]">
+            <div id="worksheet-print" ref={sheetRef} className="relative bg-white shadow-lg rounded-lg p-8 min-h-[297mm]">
+              {/* Page break indicators */}
+              {!previewMode && pageBreakPx > 0 && [1, 2, 3, 4].map(page => (
+                <div
+                  key={page}
+                  className="absolute inset-x-0 print:hidden pointer-events-none z-20"
+                  style={{ top: pageBreakPx * page }}
+                >
+                  <div className="flex items-center gap-2 px-2">
+                    <div className="flex-1 border-t-2 border-dashed border-rose-300" />
+                    <span className="text-[10px] text-rose-400 font-medium whitespace-nowrap bg-white px-1">Saut — page {page + 1}</span>
+                    <div className="flex-1 border-t-2 border-dashed border-rose-300" />
+                  </div>
+                </div>
+              ))}
               {/* Header — always view-only inside the sheet */}
               {!previewMode && !editingHeader ? (
                 <div

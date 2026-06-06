@@ -74,3 +74,36 @@ export function saveToBank(block: Block): void {
 export function removeFromBank(id: string): void {
   localStorage.setItem(BANK_KEY, JSON.stringify(loadBank().filter(b => b.id !== id)))
 }
+
+const DEFAULT_FONT_KEY = 'fichespro_default_font'
+
+export function loadDefaultFont(): string {
+  return localStorage.getItem(DEFAULT_FONT_KEY) || ''
+}
+
+export function saveDefaultFont(font: string): void {
+  if (font) localStorage.setItem(DEFAULT_FONT_KEY, font)
+  else localStorage.removeItem(DEFAULT_FONT_KEY)
+}
+
+const AI_TEMPLATES_KEY = 'fichespro_ai_templates'
+
+export interface AITemplate {
+  id: string
+  name: string
+  blockTypes: string[]   // just the block type sequence
+  createdAt: string
+}
+
+export function loadAITemplates(): AITemplate[] {
+  try { return JSON.parse(localStorage.getItem(AI_TEMPLATES_KEY) || '[]') } catch { return [] }
+}
+
+export function saveAITemplate(t: AITemplate): void {
+  const all = loadAITemplates().filter(x => x.id !== t.id)
+  localStorage.setItem(AI_TEMPLATES_KEY, JSON.stringify([t, ...all]))
+}
+
+export function deleteAITemplate(id: string): void {
+  localStorage.setItem(AI_TEMPLATES_KEY, JSON.stringify(loadAITemplates().filter(t => t.id !== id)))
+}
