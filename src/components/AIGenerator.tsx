@@ -72,7 +72,7 @@ export default function AIGenerator({ defaultSubject, defaultLevel, onInsert, on
     setState('loading')
     setError('')
     try {
-      const blocks = await generateExercises(cfg, { subject, level, topic, exerciseTypes: types, difficulty, count, additionalInstructions: extra || undefined })
+      const blocks = await generateExercises(cfg, { subject, level, topic, exerciseTypes: types, difficulty, count, additionalInstructions: extra || undefined, templateBlockTypes: selectedTemplate ? templates.find(t => t.id === selectedTemplate)?.blockTypes : undefined })
       setGenerated(blocks)
       setState('preview')
     } catch (e) {
@@ -276,6 +276,22 @@ export default function AIGenerator({ defaultSubject, defaultLevel, onInsert, on
                   placeholder="Ex : inclure un exercice de remédiation, contexte olympique, vocabulaire spécifique…"
                 />
               </label>
+
+              {templates.length > 0 && (
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-gray-600">Modèle IA (optionnel)</span>
+                  <select
+                    className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+                    value={selectedTemplate}
+                    onChange={e => setSelectedTemplate(e.target.value)}
+                  >
+                    <option value="">Aucun modèle</option>
+                    {templates.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
               {state === 'error' && (
                 <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
