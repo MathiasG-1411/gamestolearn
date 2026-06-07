@@ -17,6 +17,7 @@ export type BlockType =
   | 'matching'
   | 'exercise-item'
   | 'rubric'
+  | 'page-break'
 
 export interface BaseBlock {
   id: string
@@ -203,6 +204,10 @@ export interface ExerciseItemBlock extends BaseBlock {
   layout: 'stacked' | 'side-by-side'  // question left, answer right
 }
 
+export interface PageBreakBlock extends BaseBlock {
+  type: 'page-break'
+}
+
 export type Block =
   | TextBlock
   | HeadingBlock
@@ -221,6 +226,7 @@ export type Block =
   | MatchingBlock
   | ExerciseItemBlock
   | RubricBlock
+  | PageBreakBlock
 
 export interface RubricCriterion {
   name: string

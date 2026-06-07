@@ -218,6 +218,9 @@ function blockToDocxChildren(block: Block): (Paragraph | Table)[] {
       return result
     }
 
+    case 'page-break':
+      return [new Paragraph({ pageBreakBefore: true, children: [] })]
+
     default:
       return []
   }

@@ -425,7 +425,7 @@ function renderInner(block: Block, editMode: boolean) {
         switch (b.answerStyle) {
           case 'lines':
             return (
-              <div className="mt-2 space-y-5">
+              <div className="mt-2 space-y-4">
                 {Array.from({ length: b.lineCount }).map((_, i) => (
                   <div key={i} className="border-b border-gray-400 w-full" style={{ minHeight: '1px' }} />
                 ))}
@@ -433,7 +433,7 @@ function renderInner(block: Block, editMode: boolean) {
             )
           case 'dotted-lines':
             return (
-              <div className="mt-2 space-y-5">
+              <div className="mt-2 space-y-4">
                 {Array.from({ length: b.lineCount }).map((_, i) => (
                   <div key={i} className="border-b border-dashed border-gray-400 w-full" style={{ minHeight: '1px' }} />
                 ))}
@@ -547,6 +547,17 @@ function renderInner(block: Block, editMode: boolean) {
         </div>
       )
     }
+
+    case 'page-break':
+      return editMode ? (
+        <div className="my-2 flex items-center gap-2 select-none print:hidden">
+          <div className="flex-1 border-t-2 border-dashed border-blue-300" />
+          <span className="text-[10px] text-blue-400 font-medium px-2 py-0.5 bg-blue-50 rounded border border-blue-200 whitespace-nowrap">
+            ✦ Saut de page forcé
+          </span>
+          <div className="flex-1 border-t-2 border-dashed border-blue-300" />
+        </div>
+      ) : null
 
     default:
       return null

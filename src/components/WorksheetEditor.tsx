@@ -41,6 +41,7 @@ const BLOCK_ICONS: Record<string, JSX.Element> = {
   'table': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="3" width="16" height="14" rx="1"/><path d="M2 8h16M8 8v9M12 8v9"/></svg>,
   'columns': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="3" width="7" height="14" rx="1"/><rect x="11" y="3" width="7" height="14" rx="1"/></svg>,
   'shape': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="7" cy="13" r="3"/><rect x="11" y="4" width="6" height="6" rx="1"/><path strokeLinecap="round" d="M3 9l4-6 4 6"/></svg>,
+  'page-break': <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeDasharray="2 2" strokeLinecap="round" d="M2 10h16"/><path strokeLinecap="round" d="M10 5l-2 3h4l-2-3zM10 15l-2-3h4l-2 3z"/></svg>,
 }
 
 const GROUP_COLORS: Record<string, { bg: string; icon: string; label: string }> = {
@@ -69,6 +70,7 @@ const BLOCK_MENU: { type: BlockType; label: string; desc: string; group: string 
   { type: 'table', label: 'Tableau', desc: 'Lignes/colonnes', group: 'Mise en page' },
   { type: 'columns', label: 'Colonnes', desc: 'Texte en colonnes', group: 'Mise en page' },
   { type: 'shape', label: 'Formes', desc: 'Formes géométriques', group: 'Mise en page' },
+  { type: 'page-break', label: 'Saut page', desc: 'Forcer un saut de page', group: 'Mise en page' },
 ]
 
 const GROUPS = ['Structure', 'Contenu', 'Exercices', 'Mise en page']
@@ -101,6 +103,7 @@ function createDefaultBlock(type: BlockType): Block {
       { name: 'Critère 1', descriptions: ['', '', '', ''] },
       { name: 'Critère 2', descriptions: ['', '', '', ''] },
     ], showPoints: false }
+    case 'page-break': return { id, type: 'page-break' }
     default: return { id, type: 'text', content: '' } as Block
   }
 }
@@ -609,8 +612,15 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
                 {worksheet.blocks.map(block => (
                   <div
                     key={block.id}
+                    data-block-id={block.id}
                     onClick={() => !previewMode && setSelectedId(block.id)}
-                    className={`relative group rounded transition ${!previewMode ? 'hover:ring-2 hover:ring-indigo-200 cursor-pointer' : ''} ${selectedId === block.id && !previewMode ? 'ring-2 ring-indigo-400 bg-indigo-50/30' : ''}`}
+                    className={`relative group rounded transition ${
+                      block.type === 'table' ? 'print-block-table' :
+                      block.type === 'rubric' ? 'print-block-rubric' :
+                      block.type === 'exercise-header' ? 'print-block-exercise-header' :
+                      block.type === 'page-break' ? 'print-page-break' :
+                      'print-block'
+                    } ${!previewMode ? 'hover:ring-2 hover:ring-indigo-200 cursor-pointer' : ''} ${selectedId === block.id && !previewMode ? 'ring-2 ring-indigo-400 bg-indigo-50/30' : ''}`}
                   >
                     {!previewMode && (
                       <div className="absolute -right-1 -top-1 hidden group-hover:flex gap-1 z-10 print:hidden">
