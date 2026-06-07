@@ -142,6 +142,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
   const moreMenuRef = useRef<HTMLDivElement>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
   const [pageBreakPx, setPageBreakPx] = useState(0)
+  const [sheetHeight, setSheetHeight] = useState(0)
 
   // Sidebar state — collapsed by default on mobile
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
@@ -178,6 +179,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
     const update = () => {
       const width = el.offsetWidth
       setPageBreakPx(Math.round((267 / 180) * width))
+      setSheetHeight(el.scrollHeight)
     }
     update()
     const ro = new ResizeObserver(update)
@@ -573,7 +575,7 @@ export default function WorksheetEditor({ worksheet, onChange, onBack, onDiffere
           <div className="max-w-[210mm] mx-auto">
             <div id="worksheet-print" ref={sheetRef} className="relative bg-white shadow-lg rounded-lg p-8 min-h-[297mm]">
               {/* Page break indicators */}
-              {!previewMode && pageBreakPx > 0 && [1, 2, 3, 4].map(page => (
+              {!previewMode && pageBreakPx > 0 && [1, 2, 3, 4].filter(page => pageBreakPx * page < sheetHeight).map(page => (
                 <div
                   key={page}
                   className="absolute inset-x-0 print:hidden pointer-events-none z-20"
