@@ -24,8 +24,8 @@ const EXERCISE_TYPES = [
 ]
 
 export default function AIGenerator({ defaultSubject, defaultLevel, onInsert, onClose }: Props) {
-  const [cfg, setCfg] = useState<AIConfig>({ provider: 'gemini', apiKey: '' })
-  const [showKeySetup, setShowKeySetup] = useState(false)
+  const [cfg, setCfg] = useState<AIConfig>(() => loadAIConfig() ?? { provider: 'gemini', apiKey: '' })
+  const [showKeySetup, setShowKeySetup] = useState(() => !loadAIConfig()?.apiKey)
   const [subject, setSubject] = useState(defaultSubject || 'Mathématiques')
   const [level, setLevel] = useState(defaultLevel || 'P4')
   const [topic, setTopic] = useState('')
@@ -38,15 +38,6 @@ export default function AIGenerator({ defaultSubject, defaultLevel, onInsert, on
   const [error, setError] = useState('')
   const [templates, setTemplates] = useState<AITemplate[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
-
-  useEffect(() => {
-    const saved = loadAIConfig()
-    if (saved) {
-      setCfg(saved)
-    } else {
-      setShowKeySetup(true)
-    }
-  }, [])
 
   useEffect(() => setTemplates(loadAITemplates()), [])
 
@@ -118,7 +109,7 @@ export default function AIGenerator({ defaultSubject, defaultLevel, onInsert, on
                 <p className="font-semibold text-amber-800 mb-2">🔑 Clé API nécessaire</p>
                 <p className="text-amber-700 mb-3">L'IA fonctionne avec votre propre clé API (gratuite, stockée uniquement sur votre appareil).</p>
                 <div className="space-y-2 text-amber-800">
-                  <p><strong>Google Gemini (recommandé) :</strong><br />
+                  <p><strong>Google Gemini 2.0 Flash (recommandé) :</strong><br />
                   → <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="underline text-blue-700">aistudio.google.com</a> → <em>Get API key</em><br />
                   Gratuit · Sans carte bancaire · 1 500 req/jour</p>
                   <p><strong>Groq (ultra-rapide) :</strong><br />
