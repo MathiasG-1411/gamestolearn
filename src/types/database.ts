@@ -28,6 +28,7 @@ export type Database = {
           name?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       classes: {
         Row: {
@@ -51,6 +52,15 @@ export type Database = {
           code?: string;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "classes_teacher_id_fkey";
+            columns: ["teacher_id"];
+            isOneToOne: false;
+            referencedRelation: "teachers";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       students: {
         Row: {
@@ -74,6 +84,15 @@ export type Database = {
           code?: string;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "students_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "classes";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       games: {
         Row: {
@@ -97,6 +116,7 @@ export type Database = {
           config?: Json;
           created_at?: string;
         };
+        Relationships: [];
       };
       progress: {
         Row: {
@@ -120,6 +140,22 @@ export type Database = {
           score?: number;
           played_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "progress_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "progress_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          }
+        ];
       };
     };
     Views: Record<string, never>;
