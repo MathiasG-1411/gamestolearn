@@ -27,21 +27,31 @@ export default async function StudentHomePage() {
     .order("created_at");
 
   return (
-    <main className="flex flex-col items-center min-h-screen p-8">
-      <div className="w-full max-w-lg">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold">Bonjour {student.first_name} !</h1>
-            <p className="text-muted-foreground text-sm">{className}</p>
-          </div>
+    <main className="min-h-screen bg-gradient-to-b from-amber-50 to-background">
+      {/* Header */}
+      <div className="bg-background border-b border-border px-6 py-4">
+        <div className="max-w-lg mx-auto flex items-center justify-between">
+          <span className="font-bold text-lg">
+            Games<span className="text-primary">To</span>Learn
+          </span>
           <form action={studentLogout}>
-            <Button variant="ghost" size="sm" type="submit">
+            <Button variant="ghost" size="sm" type="submit" className="text-muted-foreground text-xs">
               Changer d&apos;élève
             </Button>
           </form>
         </div>
+      </div>
 
-        <h2 className="font-medium mb-4">Jeux disponibles</h2>
+      <div className="max-w-lg mx-auto px-6 py-8">
+        {/* Welcome */}
+        <div className="text-center mb-8">
+          <div className="text-5xl mb-3">👋</div>
+          <h1 className="text-3xl font-bold mb-1">Bonjour {student.first_name} !</h1>
+          <p className="text-muted-foreground">{className}</p>
+        </div>
+
+        {/* Games */}
+        <h2 className="font-semibold text-lg mb-4">Mes jeux</h2>
 
         {games && games.length > 0 ? (
           <div className="flex flex-col gap-3">
@@ -49,20 +59,24 @@ export default async function StudentHomePage() {
               <Link
                 key={game.id}
                 href={`/play/${game.id}`}
-                className="border border-border rounded-xl p-5 hover:bg-muted/50 transition-colors flex items-center justify-between"
+                className="bg-background border border-border rounded-2xl p-5 hover:shadow-md hover:border-primary/30 transition-all flex items-center gap-4 group"
               >
-                <div>
-                  <p className="font-medium">{game.title}</p>
-                  <p className="text-sm text-muted-foreground">{game.type}</p>
+                <div className="text-4xl">🎮</div>
+                <div className="flex-1">
+                  <p className="font-semibold group-hover:text-primary transition-colors">{game.title}</p>
+                  <p className="text-sm text-muted-foreground">Clique pour jouer !</p>
                 </div>
-                <span className="text-2xl">🎮</span>
+                <span className="text-muted-foreground group-hover:text-primary transition-colors text-xl">→</span>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="border border-border rounded-xl p-8 text-center text-muted-foreground">
-            <p className="text-lg font-medium mb-2">Bientôt disponible !</p>
-            <p className="text-sm">Ton enseignant va bientôt ajouter des jeux ici.</p>
+          <div className="bg-background border border-border rounded-2xl p-8 text-center">
+            <div className="text-4xl mb-3">⏳</div>
+            <p className="font-medium mb-1">Bientôt disponible !</p>
+            <p className="text-sm text-muted-foreground">
+              Ton enseignant va bientôt ajouter des jeux ici.
+            </p>
           </div>
         )}
       </div>

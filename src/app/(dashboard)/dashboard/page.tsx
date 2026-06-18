@@ -1,34 +1,59 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const { count: classCount } = await supabase
+    .from("classes")
+    .select("*", { count: "exact", head: true })
+    .eq("teacher_id", user!.id);
+
+  const { count: studentCount } = await supabase
+    .from("students")
+    .select("students.id", { count: "exact", head: true })
+    .eq("classes.teacher_id", user!.id);
+
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-2">Tableau de bord</h1>
-      <p className="text-muted-foreground mb-6">
-        Connecté en tant que <strong>{user?.email}</strong>
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <a
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-1">Bonjour 👋</h1>
+        <p className="text-muted-foreground">{user?.email}</p>
+      </div>
+
+      {/* Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <Link
           href="/classes"
-          className="block p-6 border border-border rounded-xl hover:bg-muted transition-colors"
+          className="group bg-background border border-border rounded-2xl p-6 hover:shadow-md hover:border-primary/30 transition-all"
         >
-          <h2 className="font-semibold text-lg mb-1">Mes classes</h2>
-          <p className="text-muted-foreground text-sm">
-            Gérer vos classes et vos élèves.
+          <div className="text-4xl mb-4">🏫</div>
+          <h2 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">
+            Mes classes
+          </h2>
+          <p className="text-muted-foreground text-sm mb-3">
+            Gérez vos classes et vos élèves.
           </p>
-        </a>
-        <a
+          <p className="text-sm font-medium text-primary">
+            {classCount ?? 0} classe{(classCount ?? 0) !== 1 ? "s" : ""} →
+          </p>
+        </Link>
+
+        <Link
           href="/games"
-          className="block p-6 border border-border rounded-xl hover:bg-muted transition-colors"
+          className="group bg-background border border-border rounded-2xl p-6 hover:shadow-md hover:border-primary/30 transition-all"
         >
-          <h2 className="font-semibold text-lg mb-1">Jeux</h2>
-          <p className="text-muted-foreground text-sm">
-            Consulter les jeux disponibles.
+          <div className="text-4xl mb-4">🎮</div>
+          <h2 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">
+            Jeux
+          </h2>
+          <p className="text-muted-foreground text-sm mb-3">
+            Créez et gérez vos jeux pédagogiques.
           </p>
-        </a>
+          <p className="text-sm font-medium text-primary">Voir les jeux →</p>
+        </Link>
       </div>
     </div>
   );
