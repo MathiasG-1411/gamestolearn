@@ -33,6 +33,12 @@ export async function createGame(formData: FormData) {
   if (gameType === "anagram" && (!config.words || config.words.length === 0)) {
     redirect("/games/new?error=Au+moins+un+mot+requis");
   }
+  if (gameType === "escape" && (!config.questions || config.questions.length === 0)) {
+    redirect("/games/new?error=Au+moins+une+énigme+requise");
+  }
+  if (gameType === "enquete" && (!config.questions || config.questions.length === 0)) {
+    redirect("/games/new?error=Au+moins+une+question+requise");
+  }
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("games").insert({

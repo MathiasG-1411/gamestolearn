@@ -5,6 +5,8 @@ import GamePlayer from "./game-player";
 import MemoryGame from "./games/memory-game";
 import QuizGame from "./games/quiz-game";
 import AnagramGame from "./games/anagram-game";
+import EscapeGame from "./games/escape-game";
+import EnqueteGame from "./games/enquete-game";
 
 export default async function PlayPage({
   params,
@@ -37,7 +39,13 @@ export default async function PlayPage({
       {game.type === "anagram" && (
         <AnagramGame game={game} studentId={studentId} />
       )}
-      {(game.type === "image-click" || !["memory", "quiz", "anagram"].includes(game.type)) && (
+      {game.type === "escape" && (
+        <EscapeGame game={game} studentId={studentId} />
+      )}
+      {game.type === "enquete" && (
+        <EnqueteGame game={game} studentId={studentId} />
+      )}
+      {(game.type === "image-click" || !["memory", "quiz", "anagram", "escape", "enquete"].includes(game.type)) && (
         <GamePlayer game={game} studentId={studentId} />
       )}
     </main>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Trash2, Brain, Timer, Puzzle, Target, Play } from "lucide-react";
+import { Plus, Trash2, Brain, Timer, Puzzle, Target, Lock, Search, Play } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { deleteGame } from "./actions";
@@ -16,6 +16,8 @@ const GAME_TYPE_META: Record<string, GameTypeMeta> = {
   memory: { icon: Brain, label: "Memory", color: "text-[#14B8A6]", bg: "bg-[#14B8A6]/10" },
   quiz: { icon: Timer, label: "Quiz chronométré", color: "text-[#FBBF24]", bg: "bg-[#FBBF24]/10" },
   anagram: { icon: Puzzle, label: "Anagramme", color: "text-purple-600", bg: "bg-purple-50" },
+  escape: { icon: Lock, label: "Escape Game", color: "text-indigo-600", bg: "bg-indigo-50" },
+  enquete: { icon: Search, label: "Enquête", color: "text-amber-600", bg: "bg-amber-50" },
 };
 
 function itemCount(config: unknown, type: string): string {
@@ -24,6 +26,8 @@ function itemCount(config: unknown, type: string): string {
   if (type === "memory") return `${(c?.pairs ?? []).length} paires`;
   if (type === "quiz") return `${(c?.questions ?? []).length} questions`;
   if (type === "anagram") return `${(c?.words ?? []).length} mots`;
+  if (type === "escape") return `${(c?.questions ?? []).length} énigmes`;
+  if (type === "enquete") return `${(c?.questions ?? []).length} indices`;
   return "";
 }
 

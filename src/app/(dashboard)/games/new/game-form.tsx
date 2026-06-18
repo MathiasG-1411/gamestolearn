@@ -35,8 +35,31 @@ const EMPTY_QUESTION = (): QuizQuestion => ({
 type AnagramWord = { word: string; hint: string; emoji: string };
 const EMPTY_WORD = (): AnagramWord => ({ word: "", hint: "", emoji: "" });
 
+// ── escape game types ────────────────────────────────────────────────
+type EscapeQuestion = { question: string; choices: string[]; correctIndex: number; codeDigit: string; wrongHint: string };
+const EMPTY_ESCAPE_Q = (): EscapeQuestion => ({
+  question: "",
+  choices: ["", "", "", ""],
+  correctIndex: 0,
+  codeDigit: "",
+  wrongHint: "",
+});
+
+// ── enquete types ────────────────────────────────────────────────────
+type EnqueteQuestion = { question: string; choices: string[]; correctIndex: number; clue: string; clueEmoji: string; wrongHint: string };
+const EMPTY_ENQUETE_Q = (): EnqueteQuestion => ({
+  question: "",
+  choices: ["", "", "", ""],
+  correctIndex: 0,
+  clue: "",
+  clueEmoji: "",
+  wrongHint: "",
+});
+
 // ── game type descriptions ───────────────────────────────────────────
 const GAME_TYPES = [
+  { value: "escape", label: "🔓 Escape Game", desc: "Résous des énigmes pour trouver le code secret" },
+  { value: "enquete", label: "🔍 Enquête", desc: "Collecte des indices pour résoudre le mystère" },
   { value: "image-click", label: "🎯 Clique sur la bonne image", desc: "4 choix avec emoji, un seul correct" },
   { value: "memory", label: "🧠 Memory", desc: "Associe les paires emoji ↔ mot" },
   { value: "quiz", label: "⏱️ Quiz chronométré", desc: "QCM avec minuterie par question" },
@@ -61,11 +84,25 @@ export default function GameForm({ error }: { error?: string }) {
   // anagram state
   const [anagramWords, setAnagramWords] = useState<AnagramWord[]>([EMPTY_WORD()]);
 
+  // escape state
+  const [escapeScenario, setEscapeScenario] = useState("");
+  const [escapeSetting, setEscapeSetting] = useState("🏰");
+  const [escapeQuestions, setEscapeQuestions] = useState<EscapeQuestion[]>([EMPTY_ESCAPE_Q()]);
+
+  // enquete state
+  const [enqueteIntro, setEnqueteIntro] = useState("");
+  const [enqueteMystery, setEnqueteMystery] = useState("");
+  const [enqueteSetting, setEnqueteSetting] = useState("🔎");
+  const [enqueteResolution, setEnqueteResolution] = useState("");
+  const [enqueteQuestions, setEnqueteQuestions] = useState<EnqueteQuestion[]>([EMPTY_ENQUETE_Q()]);
+
   function getConfig() {
     if (gameType === "image-click") return JSON.stringify({ rounds });
     if (gameType === "memory") return JSON.stringify({ pairs });
     if (gameType === "quiz") return JSON.stringify({ timePerQuestion, questions });
     if (gameType === "anagram") return JSON.stringify({ words: anagramWords });
+    if (gameType === "escape") return JSON.stringify({ scenario: escapeScenario, setting: escapeSetting, questions: escapeQuestions });
+    if (gameType === "enquete") return JSON.stringify({ intro: enqueteIntro, mystery: enqueteMystery, setting: enqueteSetting, resolution: enqueteResolution, questions: enqueteQuestions });
     return "{}";
   }
 
@@ -107,6 +144,26 @@ export default function GameForm({ error }: { error?: string }) {
   // ── anagram helpers ──────────────────────────────────────────────
   function updateAnagramWord(wi: number, field: keyof AnagramWord, value: string) {
     setAnagramWords((prev) => prev.map((w, i) => (i === wi ? { ...w, [field]: value } : w)));
+  }
+
+  // ── escape helpers ────────────────────────────────────────────────
+  function updateEscapeQ(qi: number, field: keyof EscapeQuestion, value: string | number) {
+    setEscapeQuestions((prev) => prev.map((q, i) => (i === qi ? { ...q, [field]: value } : q)));
+  }
+  function updateEscapeChoice(qi: number, ci: number, value: string) {
+    setEscapeQuestions((prev) =>
+      prev.map((q, i) => i === qi ? { ...q, choices: q.choices.map((c, j) => (j === ci ? value : c)) } : q)
+    );
+  }
+
+  // ── enquete helpers ───────────────────────────────────────────────
+  function updateEnqueteQ(qi: number, field: keyof EnqueteQuestion, value: string | number) {
+    setEnqueteQuestions((prev) => prev.map((q, i) => (i === qi ? { ...q, [field]: value } : q)));
+  }
+  function updateEnqueteChoice(qi: number, ci: number, value: string) {
+    setEnqueteQuestions((prev) =>
+      prev.map((q, i) => i === qi ? { ...q, choices: q.choices.map((c, j) => (j === ci ? value : c)) } : q)
+    );
   }
 
   return (
@@ -419,6 +476,152 @@ export default function GameForm({ error }: { error?: string }) {
             className="w-full mt-4"
           >
             + Ajouter un mot
+          </Button>
+        </div>
+      )}
+
+      {/* ── escape editor ── */}
+      {gameType === "escape" && (
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="bg-white rounded-[20px] p-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
+            <p className="text-xs text-[#475569] mb-4">Les élèves doivent résoudre des énigmes pour assembler un code secret chiffre par chiffre.</p>
+            <div className="flex gap-3 mb-4">
+              <div className="flex-1">
+                <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Emoji / décor</label>
+                <input type="text" value={escapeSetting} onChange={(e) => setEscapeSetting(e.target.value)} maxLength={2}
+                  className="w-16 text-center text-2xl border border-gray-200 rounded-xl py-2 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
+              </div>
+            </div>
+            <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Scénario d&apos;introduction</label>
+            <textarea value={escapeScenario} onChange={(e) => setEscapeScenario(e.target.value)}
+              placeholder="Ex: Le château est verrouillé depuis des siècles. Résous les énigmes pour trouver la combinaison du portail..."
+              rows={3}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none" />
+          </div>
+
+          {escapeQuestions.map((q, qi) => (
+            <div key={qi} className="bg-white rounded-[20px] p-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-sm text-[#0F172A]">Énigme {qi + 1}</h3>
+                {escapeQuestions.length > 1 && (
+                  <button type="button" onClick={() => setEscapeQuestions((prev) => prev.filter((_, i) => i !== qi))}
+                    className="text-xs text-red-500 hover:text-red-700">Supprimer</button>
+                )}
+              </div>
+              <div className="flex gap-3 mb-4">
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-[#475569] mb-1.5 block">Question / Énigme</label>
+                  <input type="text" value={q.question} onChange={(e) => updateEscapeQ(qi, "question", e.target.value)}
+                    placeholder="Ex: Combien font 7 × 8 ?"
+                    className="w-full h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
+                </div>
+                <div className="w-24">
+                  <label className="text-xs font-medium text-[#475569] mb-1.5 block">Chiffre du code</label>
+                  <input type="text" value={q.codeDigit} onChange={(e) => updateEscapeQ(qi, "codeDigit", e.target.value)}
+                    placeholder="5" maxLength={1}
+                    className="w-full h-10 border border-gray-200 rounded-xl px-3 text-center font-mono font-bold text-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 mb-3">
+                {q.choices.map((choice, ci) => (
+                  <div key={ci} className="flex items-center gap-3">
+                    <input type="radio" name={`escape-correct-${qi}`} checked={q.correctIndex === ci}
+                      onChange={() => updateEscapeQ(qi, "correctIndex", ci)} className="accent-[#2563EB] shrink-0" />
+                    <input type="text" value={choice} onChange={(e) => updateEscapeChoice(qi, ci, e.target.value)}
+                      placeholder={`Réponse ${String.fromCharCode(65 + ci)}`}
+                      className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent ${q.correctIndex === ci ? "border-green-500 bg-green-50" : "border-gray-200"}`} />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#475569] mb-1.5 block">Indice en cas d&apos;erreur (optionnel)</label>
+                <input type="text" value={q.wrongHint} onChange={(e) => updateEscapeQ(qi, "wrongHint", e.target.value)}
+                  placeholder="Ex: Compte par groupes de 7..."
+                  className="w-full h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
+              </div>
+            </div>
+          ))}
+          <Button type="button" variant="outline" onClick={() => setEscapeQuestions((prev) => [...prev, EMPTY_ESCAPE_Q()])}>
+            + Ajouter une énigme
+          </Button>
+        </div>
+      )}
+
+      {/* ── enquete editor ── */}
+      {gameType === "enquete" && (
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="bg-white rounded-[20px] p-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
+            <p className="text-xs text-[#475569] mb-4">Les élèves collectent des indices en répondant correctement pour résoudre un mystère final.</p>
+            <div className="flex gap-3 mb-4">
+              <div>
+                <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Emoji décor</label>
+                <input type="text" value={enqueteSetting} onChange={(e) => setEnqueteSetting(e.target.value)} maxLength={2}
+                  className="w-16 text-center text-2xl border border-gray-200 rounded-xl py-2 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Le mystère à résoudre</label>
+                <input type="text" value={enqueteMystery} onChange={(e) => setEnqueteMystery(e.target.value)}
+                  placeholder="Ex: Qui a volé le trésor du roi ?"
+                  className="w-full h-10 border border-gray-200 rounded-xl px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Introduction / contexte</label>
+              <textarea value={enqueteIntro} onChange={(e) => setEnqueteIntro(e.target.value)}
+                placeholder="Ex: Un vol mystérieux a eu lieu au château. Tu es détective junior et tu dois trouver le coupable..."
+                rows={2}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Résolution finale</label>
+              <textarea value={enqueteResolution} onChange={(e) => setEnqueteResolution(e.target.value)}
+                placeholder="Ex: Grâce à tes indices, tu as découvert que c'était le chambellan qui avait volé le trésor pour ..."
+                rows={2}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none" />
+            </div>
+          </div>
+
+          {enqueteQuestions.map((q, qi) => (
+            <div key={qi} className="bg-white rounded-[20px] p-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-sm text-[#0F172A]">Question {qi + 1}</h3>
+                {enqueteQuestions.length > 1 && (
+                  <button type="button" onClick={() => setEnqueteQuestions((prev) => prev.filter((_, i) => i !== qi))}
+                    className="text-xs text-red-500 hover:text-red-700">Supprimer</button>
+                )}
+              </div>
+              <input type="text" value={q.question} onChange={(e) => updateEnqueteQ(qi, "question", e.target.value)}
+                placeholder="Ex: Quelle est la couleur du manteau du roi ?"
+                className="w-full h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent mb-3" />
+              <div className="flex flex-col gap-2 mb-3">
+                {q.choices.map((choice, ci) => (
+                  <div key={ci} className="flex items-center gap-3">
+                    <input type="radio" name={`enquete-correct-${qi}`} checked={q.correctIndex === ci}
+                      onChange={() => updateEnqueteQ(qi, "correctIndex", ci)} className="accent-[#2563EB] shrink-0" />
+                    <input type="text" value={choice} onChange={(e) => updateEnqueteChoice(qi, ci, e.target.value)}
+                      placeholder={`Réponse ${String.fromCharCode(65 + ci)}`}
+                      className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent ${q.correctIndex === ci ? "border-green-500 bg-green-50" : "border-gray-200"}`} />
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                <div className="w-12">
+                  <label className="text-xs font-medium text-[#475569] mb-1.5 block">Emoji</label>
+                  <input type="text" value={q.clueEmoji} onChange={(e) => updateEnqueteQ(qi, "clueEmoji", e.target.value)}
+                    maxLength={2}
+                    className="w-full text-center text-xl border border-gray-200 rounded-xl py-2 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-[#475569] mb-1.5 block">Indice révélé si bonne réponse</label>
+                  <input type="text" value={q.clue} onChange={(e) => updateEnqueteQ(qi, "clue", e.target.value)}
+                    placeholder="Ex: Le manteau rouge a été retrouvé près de la cave..."
+                    className="w-full h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
+                </div>
+              </div>
+            </div>
+          ))}
+          <Button type="button" variant="outline" onClick={() => setEnqueteQuestions((prev) => [...prev, EMPTY_ENQUETE_Q()])}>
+            + Ajouter une question
           </Button>
         </div>
       )}
