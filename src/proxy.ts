@@ -2,25 +2,40 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const isProtected =
+  const isTeacherProtected =
     path.startsWith("/dashboard") ||
     path.startsWith("/classes") ||
     path.startsWith("/games");
-  const isAuthPage = path.startsWith("/login");
+  const isTeacherAuthPage = path.startsWith("/login");
+  const isStudentProtected = path.startsWith("/student/home");
+  const isStudentAuthPage = path === "/student";
 
-  const hasSession = request.cookies
+  const hasTeacherSession = request.cookies
     .getAll()
     .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+  const hasStudentSession = !!request.cookies.get("student_id");
 
-  if (!hasSession && isProtected) {
+  if (!hasTeacherSession && isTeacherProtected) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (hasSession && isAuthPage) {
+  if (hasTeacherSession && isTeacherAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
+  if (!hasStudentSession && isStudentProtected) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/student";
+    return NextResponse.redirect(url);
+  }
+
+  if (hasStudentSession && isStudentAuthPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/student/home";
     return NextResponse.redirect(url);
   }
 
