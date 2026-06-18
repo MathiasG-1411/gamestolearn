@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { Button } from "@/components/ui/button";
 import { studentLogout } from "../actions";
 
@@ -22,8 +21,7 @@ export default async function StudentHomePage() {
 
   const className = (student.classes as { name: string } | null)?.name ?? "ta classe";
 
-  const adminSupabase = createAdminClient();
-  const { data: games } = await adminSupabase
+  const { data: games } = await supabase
     .from("games")
     .select("id, title, type")
     .order("created_at");
