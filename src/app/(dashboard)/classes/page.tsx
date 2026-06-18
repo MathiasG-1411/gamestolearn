@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Plus, Users, ChevronRight, Trash2, GraduationCap } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
 import { createClass, deleteClass } from "./actions";
 
 export default async function ClassesPage({
@@ -10,9 +9,7 @@ export default async function ClassesPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   const { error } = await searchParams;
 
   const { data: classes } = await supabase
@@ -22,108 +19,111 @@ export default async function ClassesPage({
     .order("created_at", { ascending: false });
 
   return (
-    <div>
+    <div className="space-y-8 animate-fade-up">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#0F172A]">Mes classes</h1>
-          <p className="text-[#475569] text-sm mt-1">
+          <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">Mes classes</h1>
+          <p className="text-[13px] text-[#94A3B8] mt-0.5">
             {(classes?.length ?? 0)} classe{(classes?.length ?? 0) !== 1 ? "s" : ""} créée{(classes?.length ?? 0) !== 1 ? "s" : ""}
           </p>
         </div>
       </div>
 
-      {/* Formulaire de création */}
+      {/* Create form */}
       <div
-        className="mb-8 p-6 bg-white rounded-[20px]"
-        style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}
+        className="bg-white rounded-2xl p-5"
+        style={{ border: "1px solid #F1F5F9", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)" }}
       >
-        <h2 className="font-bold text-[#0F172A] mb-4">Créer une nouvelle classe</h2>
+        <p className="text-[13px] font-semibold text-[#0F172A] mb-3">Nouvelle classe</p>
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl mb-3">
+          <p className="text-[12px] text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-xl mb-3">
             {decodeURIComponent(error)}
           </p>
         )}
-        <form action={createClass} className="flex gap-3">
+        <form action={createClass} className="flex gap-2.5">
           <input
             name="name"
             type="text"
             required
             placeholder="Ex : CM2-A, 6ème B, Maternelle…"
-            className="flex-1 h-12 border border-gray-200 rounded-[12px] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent bg-white"
+            className="flex-1 h-10 border border-[#E2E8F0] rounded-xl px-3.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] bg-white transition-all placeholder:text-[#CBD5E1]"
           />
-          <Button type="submit" className="flex items-center gap-2 shrink-0">
-            <Plus className="w-4 h-4" />
+          <button
+            type="submit"
+            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl text-[13px] font-semibold text-white shrink-0 transition-all hover:opacity-90"
+            style={{ background: "linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)" }}
+          >
+            <Plus className="w-3.5 h-3.5" />
             Créer
-          </Button>
+          </button>
         </form>
       </div>
 
-      {/* Liste des classes */}
+      {/* Class list */}
       {classes && classes.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {classes.map((cls) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {classes.map((cls, i) => (
             <div
               key={cls.id}
-              className="bg-white rounded-[20px] p-6 transition-all duration-200 hover:-translate-y-0.5 group"
+              className="group bg-white rounded-2xl overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-fade-up"
               style={{
-                boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
-                border: "1px solid rgba(0,0,0,0.05)",
+                border: "1px solid #F1F5F9",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)",
+                animationDelay: `${i * 50}ms`,
               }}
             >
-              <Link href={`/classes/${cls.id}`} className="block mb-5">
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#2563EB]/10 flex items-center justify-center shrink-0">
-                    <Users className="w-5 h-5 text-[#2563EB]" />
+              <Link href={`/classes/${cls.id}`} className="block p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-xl bg-[#EFF6FF] flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4 text-[#2563EB]" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-[#0F172A] text-lg leading-tight truncate">
-                      {cls.name}
-                    </h3>
-                  </div>
+                  <h3 className="font-semibold text-[#0F172A] text-[15px] leading-tight truncate">
+                    {cls.name}
+                  </h3>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#475569]">Code élève :</span>
-                  <span className="font-mono font-bold text-sm bg-gray-100 text-[#0F172A] px-2.5 py-0.5 rounded-lg tracking-widest">
+                  <span className="text-[11px] text-[#94A3B8]">Code élève</span>
+                  <span className="font-mono font-bold text-[13px] bg-[#F8FAFC] border border-[#F1F5F9] text-[#2563EB] px-2.5 py-0.5 rounded-lg tracking-widest">
                     {cls.code}
                   </span>
                 </div>
               </Link>
-              <div className="flex justify-between items-center pt-4 border-t border-gray-50">
+              <div
+                className="flex items-center justify-between px-5 py-3"
+                style={{ borderTop: "1px solid #F8FAFC", background: "#FAFAFA" }}
+              >
                 <Link
                   href={`/classes/${cls.id}`}
-                  className="flex items-center gap-1 text-sm text-[#2563EB] hover:text-[#1D4ED8] font-medium transition-colors"
+                  className="flex items-center gap-1 text-[12px] text-[#64748B] hover:text-[#2563EB] font-medium transition-colors"
                 >
                   Voir les élèves
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
                 <form action={deleteClass}>
                   <input type="hidden" name="classId" value={cls.id} />
-                  <Button
-                    variant="destructive"
-                    size="sm"
+                  <button
                     type="submit"
-                    className="flex items-center gap-1.5 h-8 text-xs px-3"
+                    className="flex items-center gap-1 text-[11px] font-medium text-[#94A3B8] hover:text-red-500 transition-colors px-2 py-1 rounded-lg hover:bg-red-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     Supprimer
-                  </Button>
+                  </button>
                 </form>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 bg-white rounded-[20px]" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
-          <div className="w-16 h-16 rounded-2xl bg-[#2563EB]/10 flex items-center justify-center mx-auto mb-4">
-            <GraduationCap className="w-8 h-8 text-[#2563EB]" />
+        <div
+          className="text-center py-16 bg-white rounded-2xl"
+          style={{ border: "1px solid #F1F5F9", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)" }}
+        >
+          <div className="w-14 h-14 rounded-2xl bg-[#EFF6FF] flex items-center justify-center mx-auto mb-4">
+            <GraduationCap className="w-7 h-7 text-[#2563EB]" />
           </div>
-          <p className="font-bold text-[#0F172A] text-lg mb-2">
-            Aucune classe pour l&apos;instant
-          </p>
-          <p className="text-[#475569] text-sm">
-            Créez votre première classe avec le formulaire ci-dessus !
-          </p>
+          <p className="font-semibold text-[#0F172A] text-[15px] mb-1">Aucune classe pour l&apos;instant</p>
+          <p className="text-[13px] text-[#94A3B8]">Créez votre première classe avec le formulaire ci-dessus.</p>
         </div>
       )}
     </div>
