@@ -1,14 +1,31 @@
+import { notFound, redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { createAdminClient } from "@/lib/supabase/admin";
+import GamePlayer from "./game-player";
+
 export default async function PlayPage({
   params,
 }: {
   params: Promise<{ gameId: string }>;
 }) {
+  const cookieStore = await cookies();
+  const studentId = cookieStore.get("student_id")?.value;
+  if (!studentId) redirect("/student");
+
   const { gameId } = await params;
+  const supabase = createAdminClient();
+
+  const { data: game } = await supabase
+    .from("games")
+    .select("id, title, type, config")
+    .eq("id", gameId)
+    .single();
+
+  if (!game) notFound();
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-8">
-      <h1 className="text-3xl font-bold">Jeu : {gameId}</h1>
-      <p className="text-muted-foreground">Le jeu se chargera ici.</p>
+    <main>
+      <GamePlayer game={game} studentId={studentId} />
     </main>
   );
 }
