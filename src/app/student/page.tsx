@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { studentLogin } from "./actions";
 
 export default async function StudentPage({
@@ -10,65 +9,67 @@ export default async function StudentPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const cookieStore = await cookies();
-  if (cookieStore.get("student_id")) {
-    redirect("/student/home");
-  }
+  if (cookieStore.get("student_id")) redirect("/student/home");
 
   const { error } = await searchParams;
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-b from-amber-50 to-background">
+    <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold">
-            Games<span className="text-primary">To</span>Learn
-          </Link>
-          <div className="text-5xl my-4">🎒</div>
-          <h1 className="text-2xl font-bold mb-1">Espace élève</h1>
-          <p className="text-muted-foreground text-sm">
-            Entre tes codes pour rejoindre ta classe !
-          </p>
+        <div className="text-center mb-6">
+          <div className="text-6xl mb-3 drop-shadow">🎒</div>
+          <h1 className="text-3xl font-extrabold text-white drop-shadow mb-1">
+            Espace élève
+          </h1>
+          <p className="text-amber-100 text-sm">Entre tes codes pour jouer !</p>
         </div>
 
-        <div className="bg-background rounded-2xl shadow-sm border border-border p-8">
+        <div className="bg-white rounded-3xl shadow-xl p-8">
           {error && (
-            <div className="text-sm text-destructive bg-destructive/10 px-4 py-3 rounded-lg mb-5 text-center">
+            <div className="text-sm text-rose-600 bg-rose-50 border border-rose-200 px-4 py-3 rounded-xl mb-5 text-center font-medium">
               {decodeURIComponent(error)}
             </div>
           )}
 
           <form action={studentLogin} className="flex flex-col gap-5">
             <div>
-              <label className="text-sm font-medium mb-1.5 block">
-                Code de classe
+              <label className="text-sm font-bold mb-2 block text-gray-700">
+                🏫 Code de classe
               </label>
               <input
                 name="classCode"
                 type="text"
                 required
-                placeholder="ex : ABC123"
-                autoCapitalize="none"
-                className="w-full border border-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background font-mono tracking-widest text-center text-lg uppercase"
+                placeholder="ABC123"
+                autoCapitalize="characters"
+                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-xl font-mono tracking-widest text-center focus:outline-none focus:border-amber-400 uppercase"
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">
-                Ton code personnel
+              <label className="text-sm font-bold mb-2 block text-gray-700">
+                🔑 Ton code personnel
               </label>
               <input
                 name="studentCode"
                 type="text"
                 required
-                placeholder="ex : XYZ789"
-                autoCapitalize="none"
-                className="w-full border border-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background font-mono tracking-widest text-center text-lg uppercase"
+                placeholder="XYZ789"
+                autoCapitalize="characters"
+                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-xl font-mono tracking-widest text-center focus:outline-none focus:border-amber-400 uppercase"
               />
             </div>
-            <Button type="submit" className="w-full h-12 text-base mt-1 bg-amber-500 hover:bg-amber-600 text-white border-0">
-              Rejoindre ma classe 🚀
-            </Button>
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white font-extrabold py-4 rounded-2xl text-lg shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 mt-1"
+            >
+              C&apos;est parti ! 🚀
+            </button>
           </form>
         </div>
+
+        <p className="text-center mt-4 text-amber-100 text-xs">
+          <Link href="/" className="hover:text-white">← Retour à l&apos;accueil</Link>
+        </p>
       </div>
     </main>
   );

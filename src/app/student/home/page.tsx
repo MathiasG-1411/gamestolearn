@@ -2,8 +2,15 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
 import { studentLogout } from "../actions";
+
+const GAME_COLORS = [
+  "from-indigo-500 to-violet-600",
+  "from-amber-400 to-orange-500",
+  "from-emerald-400 to-teal-500",
+  "from-rose-400 to-pink-600",
+  "from-sky-400 to-blue-600",
+];
 
 export default async function StudentHomePage() {
   const cookieStore = await cookies();
@@ -27,55 +34,48 @@ export default async function StudentHomePage() {
     .order("created_at");
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-50 to-background">
+    <main className="min-h-screen bg-gradient-to-b from-indigo-600 to-violet-700">
       {/* Header */}
-      <div className="bg-background border-b border-border px-6 py-4">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <span className="font-bold text-lg">
-            Games<span className="text-primary">To</span>Learn
-          </span>
-          <form action={studentLogout}>
-            <Button variant="ghost" size="sm" type="submit" className="text-muted-foreground text-xs">
-              Changer d&apos;élève
-            </Button>
-          </form>
-        </div>
+      <div className="px-6 pt-8 pb-6 text-center relative">
+        <form action={studentLogout} className="absolute top-6 right-6">
+          <button type="submit" className="text-indigo-200 hover:text-white text-xs transition-colors">
+            Changer →
+          </button>
+        </form>
+        <div className="text-5xl mb-3">👋</div>
+        <h1 className="text-3xl font-extrabold text-white mb-1">
+          Salut {student.first_name} !
+        </h1>
+        <p className="text-indigo-200 text-sm">{className}</p>
       </div>
 
-      <div className="max-w-lg mx-auto px-6 py-8">
-        {/* Welcome */}
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">👋</div>
-          <h1 className="text-3xl font-bold mb-1">Bonjour {student.first_name} !</h1>
-          <p className="text-muted-foreground">{className}</p>
-        </div>
-
-        {/* Games */}
-        <h2 className="font-semibold text-lg mb-4">Mes jeux</h2>
+      {/* Games */}
+      <div className="bg-white rounded-t-3xl min-h-screen px-6 pt-8 pb-16">
+        <h2 className="text-xl font-extrabold mb-5 text-gray-800">Mes jeux 🎮</h2>
 
         {games && games.length > 0 ? (
-          <div className="flex flex-col gap-3">
-            {games.map((game) => (
+          <div className="flex flex-col gap-4">
+            {games.map((game, i) => (
               <Link
                 key={game.id}
                 href={`/play/${game.id}`}
-                className="bg-background border border-border rounded-2xl p-5 hover:shadow-md hover:border-primary/30 transition-all flex items-center gap-4 group"
+                className={`bg-gradient-to-r ${GAME_COLORS[i % GAME_COLORS.length]} rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200`}
               >
-                <div className="text-4xl">🎮</div>
+                <div className="text-4xl">🎯</div>
                 <div className="flex-1">
-                  <p className="font-semibold group-hover:text-primary transition-colors">{game.title}</p>
-                  <p className="text-sm text-muted-foreground">Clique pour jouer !</p>
+                  <p className="font-extrabold text-white text-lg">{game.title}</p>
+                  <p className="text-white/80 text-sm">Appuie pour jouer !</p>
                 </div>
-                <span className="text-muted-foreground group-hover:text-primary transition-colors text-xl">→</span>
+                <span className="text-white text-2xl">→</span>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="bg-background border border-border rounded-2xl p-8 text-center">
-            <div className="text-4xl mb-3">⏳</div>
-            <p className="font-medium mb-1">Bientôt disponible !</p>
-            <p className="text-sm text-muted-foreground">
-              Ton enseignant va bientôt ajouter des jeux ici.
+          <div className="text-center py-16">
+            <div className="text-5xl mb-4">⏳</div>
+            <p className="font-bold text-gray-700 mb-1">Pas encore de jeux...</p>
+            <p className="text-sm text-gray-400">
+              Ton enseignant va bientôt en ajouter !
             </p>
           </div>
         )}
