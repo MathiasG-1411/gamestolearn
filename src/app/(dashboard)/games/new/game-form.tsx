@@ -115,26 +115,32 @@ export default function GameForm({ error }: { error?: string }) {
       <input type="hidden" name="config" value={getConfig()} />
 
       {error && (
-        <div className="text-sm text-destructive bg-destructive/10 px-4 py-3 rounded-xl mb-6 text-center">
+        <div className="text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-xl mb-6 text-center">
           {decodeURIComponent(error)}
         </div>
       )}
 
       {/* Title */}
-      <div className="bg-background border border-border rounded-2xl p-6 mb-6">
-        <label className="text-sm font-semibold mb-2 block">Titre du jeu</label>
+      <div
+        className="bg-white rounded-[20px] p-6 mb-6"
+        style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}
+      >
+        <label className="text-sm font-semibold mb-2 block text-[#0F172A]">Titre du jeu</label>
         <input
           name="title"
           type="text"
           required
           placeholder="ex : Les animaux, Les couleurs, L'alphabet..."
-          className="w-full border border-input rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full h-12 border border-gray-200 rounded-[12px] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
         />
       </div>
 
       {/* Game type selector */}
-      <div className="bg-background border border-border rounded-2xl p-6 mb-6">
-        <label className="text-sm font-semibold mb-3 block">Type de jeu</label>
+      <div
+        className="bg-white rounded-[20px] p-6 mb-6"
+        style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}
+      >
+        <label className="text-sm font-semibold mb-3 block text-[#0F172A]">Type de jeu</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {GAME_TYPES.map((t) => (
             <button
@@ -142,11 +148,13 @@ export default function GameForm({ error }: { error?: string }) {
               type="button"
               onClick={() => setGameType(t.value)}
               className={`text-left p-3 rounded-xl border-2 transition-all ${
-                gameType === t.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
+                gameType === t.value
+                  ? "border-[#2563EB] bg-[#2563EB]/5"
+                  : "border-gray-200 hover:border-[#2563EB]/40"
               }`}
             >
-              <div className="font-medium text-sm">{t.label}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{t.desc}</div>
+              <div className="font-semibold text-sm text-[#0F172A]">{t.label}</div>
+              <div className="text-xs text-[#475569] mt-0.5">{t.desc}</div>
             </button>
           ))}
         </div>
@@ -156,7 +164,7 @@ export default function GameForm({ error }: { error?: string }) {
       {gameType === "image-click" && (
         <div className="flex flex-col gap-6 mb-6">
           {rounds.map((round, ri) => (
-            <div key={ri} className="bg-background border border-border rounded-2xl p-6">
+            <div key={ri} className="bg-white rounded-[20px] p-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-sm">Round {ri + 1}</h3>
                 {rounds.length > 1 && (
@@ -170,7 +178,7 @@ export default function GameForm({ error }: { error?: string }) {
                 )}
               </div>
               <div className="mb-4">
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                <label className="text-xs font-medium text-[#475569] mb-1.5 block">
                   Instruction (ex : &quot;Clique sur le CHAT&quot;)
                 </label>
                 <input
@@ -179,7 +187,7 @@ export default function GameForm({ error }: { error?: string }) {
                   value={round.instruction}
                   onChange={(e) => updateRound(ri, "instruction", e.target.value)}
                   placeholder="Clique sur le..."
-                  className="w-full border border-input rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -234,8 +242,8 @@ export default function GameForm({ error }: { error?: string }) {
 
       {/* ── memory editor ── */}
       {gameType === "memory" && (
-        <div className="bg-background border border-border rounded-2xl p-6 mb-6">
-          <p className="text-xs text-muted-foreground mb-4">
+        <div className="bg-white rounded-[20px] p-6 mb-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
+          <p className="text-xs text-[#475569] mb-4">
             Crée des paires emoji ↔ mot. Les cartes seront mélangées automatiquement.
           </p>
           <div className="flex flex-col gap-3 mb-4">
@@ -248,14 +256,14 @@ export default function GameForm({ error }: { error?: string }) {
                   onChange={(e) => updatePair(pi, "emoji", e.target.value)}
                   placeholder="🐱"
                   maxLength={2}
-                  className="w-14 text-center text-2xl border border-input rounded-xl py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-14 text-center text-2xl border border-gray-200 rounded-xl py-2 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                 />
                 <input
                   type="text"
                   value={pair.word}
                   onChange={(e) => updatePair(pi, "word", e.target.value)}
                   placeholder="Chat"
-                  className="flex-1 border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                 />
                 {pairs.length > 2 && (
                   <button
@@ -283,8 +291,8 @@ export default function GameForm({ error }: { error?: string }) {
       {/* ── quiz editor ── */}
       {gameType === "quiz" && (
         <div className="flex flex-col gap-4 mb-6">
-          <div className="bg-background border border-border rounded-2xl p-6">
-            <label className="text-sm font-semibold mb-2 block">
+          <div className="bg-white rounded-[20px] p-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
+            <label className="text-sm font-semibold mb-2 block text-[#0F172A]">
               Temps par question (secondes)
             </label>
             <input
@@ -293,12 +301,12 @@ export default function GameForm({ error }: { error?: string }) {
               max={60}
               value={timePerQuestion}
               onChange={(e) => setTimePerQuestion(Number(e.target.value))}
-              className="w-24 border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-24 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
             />
           </div>
 
           {questions.map((q, qi) => (
-            <div key={qi} className="bg-background border border-border rounded-2xl p-6">
+            <div key={qi} className="bg-white rounded-[20px] p-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-sm">Question {qi + 1}</h3>
                 {questions.length > 1 && (
@@ -316,7 +324,7 @@ export default function GameForm({ error }: { error?: string }) {
                 value={q.question}
                 onChange={(e) => updateQuestion(qi, "question", e.target.value)}
                 placeholder="Quelle est la capitale de la France ?"
-                className="w-full border border-input rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring mb-4"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent mb-4"
               />
               <div className="flex flex-col gap-2">
                 {q.choices.map((choice, ci) => (
@@ -333,10 +341,10 @@ export default function GameForm({ error }: { error?: string }) {
                       value={choice}
                       onChange={(e) => updateQuizChoice(qi, ci, e.target.value)}
                       placeholder={`Choix ${String.fromCharCode(65 + ci)}`}
-                      className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${
+                      className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent ${
                         q.correctIndex === ci
                           ? "border-green-500 bg-green-50"
-                          : "border-input"
+                          : "border-gray-200"
                       }`}
                     />
                   </div>
@@ -356,13 +364,13 @@ export default function GameForm({ error }: { error?: string }) {
 
       {/* ── anagram editor ── */}
       {gameType === "anagram" && (
-        <div className="bg-background border border-border rounded-2xl p-6 mb-6">
-          <p className="text-xs text-muted-foreground mb-4">
+        <div className="bg-white rounded-[20px] p-6 mb-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
+          <p className="text-xs text-[#475569] mb-4">
             Les lettres de chaque mot seront mélangées. L&apos;élève doit les remettre dans l&apos;ordre.
           </p>
           <div className="flex flex-col gap-4">
             {anagramWords.map((w, wi) => (
-              <div key={wi} className="border border-border rounded-xl p-4">
+              <div key={wi} className="border border-gray-200 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium">Mot {wi + 1}</span>
                   {anagramWords.length > 1 && (
@@ -382,7 +390,7 @@ export default function GameForm({ error }: { error?: string }) {
                     onChange={(e) => updateAnagramWord(wi, "emoji", e.target.value)}
                     placeholder="🐱"
                     maxLength={2}
-                    className="w-14 text-center text-2xl border border-input rounded-xl py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-14 text-center text-2xl border border-gray-200 rounded-xl py-2 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   />
                   <div className="flex-1 flex flex-col gap-2">
                     <input
@@ -390,14 +398,14 @@ export default function GameForm({ error }: { error?: string }) {
                       value={w.word}
                       onChange={(e) => updateAnagramWord(wi, "word", e.target.value)}
                       placeholder="CHAT"
-                      className="w-full border border-input rounded-xl px-3 py-2 text-sm uppercase font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm uppercase font-mono focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                     />
                     <input
                       type="text"
                       value={w.hint}
                       onChange={(e) => updateAnagramWord(wi, "hint", e.target.value)}
                       placeholder="Indice : Un animal qui miaule"
-                      className="w-full border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -424,7 +432,7 @@ export default function GameForm({ error }: { error?: string }) {
       <button
         type="button"
         onClick={() => router.back()}
-        className="w-full mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="w-full mt-3 text-sm text-[#475569] hover:text-[#0F172A] transition-colors"
       >
         Annuler
       </button>

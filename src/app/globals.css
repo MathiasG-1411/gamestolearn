@@ -1,22 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --primary: #4f46e5;
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --primary: #2563EB;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
-  --accent: #ede9fe;
-  --accent-foreground: #4f46e5;
+  --secondary: #14B8A6;
+  --secondary-foreground: #ffffff;
+  --muted: #F1F5F9;
+  --muted-foreground: #475569;
+  --accent: #FBBF24;
+  --accent-foreground: #0F172A;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #4f46e5;
+  --border: rgba(0, 0, 0, 0.05);
+  --border-subtle: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #2563EB;
   --radius: 0.625rem;
+  --card: #FFFFFF;
+  --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
 }
 
 @theme inline {
@@ -34,12 +37,29 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-plus-jakarta-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+html,
 body {
-  background: var(--background);
+  min-height: 100%;
+}
+
+body {
+  background: linear-gradient(180deg, #F8FAFC 0%, #EEF4FF 100%);
+  background-attachment: fixed;
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-plus-jakarta-sans), var(--font-inter), Arial,
+    Helvetica, sans-serif;
 }

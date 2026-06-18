@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { login } from "./actions";
 
@@ -10,31 +11,42 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="w-full max-w-sm">
-      <div className="text-center mb-8">
-        <Link href="/" className="text-2xl font-bold">
-          Games<span className="text-primary">To</span>Learn
-        </Link>
-        <p className="text-muted-foreground text-sm mt-2">
-          Espace enseignant
-        </p>
-      </div>
+    <div className="w-full max-w-md">
+      {/* Card */}
+      <div
+        className="bg-white p-10 rounded-[20px]"
+        style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)" }}
+      >
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-14 h-14 rounded-2xl bg-[#2563EB]/10 flex items-center justify-center mb-4">
+            <GraduationCap className="w-7 h-7 text-[#2563EB]" />
+          </div>
+          <Link href="/" className="text-2xl font-bold text-[#0F172A]">
+            Games<span className="text-[#2563EB]">To</span>Learn
+          </Link>
+          <p className="text-[#475569] text-sm mt-1">Espace enseignant</p>
+        </div>
 
-      <div className="bg-background rounded-2xl shadow-sm border border-border p-8">
-        <h1 className="text-xl font-semibold mb-1">Connexion</h1>
-        <p className="text-muted-foreground text-sm mb-6">
-          Accédez à votre espace de gestion des classes.
-        </p>
+        {/* Title */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-[#0F172A] mb-1">
+            Bienvenue 👋
+          </h1>
+          <p className="text-[#475569] text-sm">
+            Connectez-vous à votre espace enseignant
+          </p>
+        </div>
 
         {error && (
-          <div className="text-sm text-destructive bg-destructive/10 px-4 py-3 rounded-lg mb-5 text-center">
+          <div className="text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-xl mb-5 text-center">
             Email ou mot de passe incorrect.
           </div>
         )}
 
         <form action={login} className="flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="email" className="text-sm font-medium">
+            <label htmlFor="email" className="text-sm font-semibold text-[#0F172A]">
               Email
             </label>
             <input
@@ -43,12 +55,12 @@ export default async function LoginPage({
               type="email"
               required
               placeholder="vous@exemple.com"
-              className="border border-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="h-12 border border-gray-200 rounded-[12px] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent bg-white"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="password" className="text-sm font-medium">
+            <label htmlFor="password" className="text-sm font-semibold text-[#0F172A]">
               Mot de passe
             </label>
             <input
@@ -56,11 +68,11 @@ export default async function LoginPage({
               name="password"
               type="password"
               required
-              className="border border-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="h-12 border border-gray-200 rounded-[12px] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent bg-white"
             />
           </div>
 
-          <Button type="submit" className="w-full h-11 text-base mt-1">
+          <Button type="submit" className="w-full mt-1">
             Se connecter
           </Button>
         </form>
