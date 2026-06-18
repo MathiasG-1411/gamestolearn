@@ -17,7 +17,7 @@ export async function studentLogin(formData: FormData) {
   const { data: cls } = await supabase
     .from("classes")
     .select("id")
-    .eq("code", classCode)
+    .ilike("code", classCode)
     .single();
 
   if (!cls) {
@@ -28,7 +28,7 @@ export async function studentLogin(formData: FormData) {
     .from("students")
     .select("id, first_name")
     .eq("class_id", cls.id)
-    .eq("code", studentCode)
+    .ilike("code", studentCode)
     .single();
 
   if (!student) {
