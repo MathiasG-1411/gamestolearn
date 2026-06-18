@@ -2,8 +2,10 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createGame } from "./actions";
+import { generateGameWithAI } from "./ai-generator-action";
 
 // ── image-click types ──────────────────────────────────────────────
 type Choice = { emoji: string; label: string; isCorrect: boolean };
@@ -59,12 +61,17 @@ const EMPTY_ENQUETE_Q = (): EnqueteQuestion => ({
 // ── game type descriptions ───────────────────────────────────────────
 const GAME_TYPES = [
   { value: "escape", label: "🔓 Escape Game", desc: "Résous des énigmes pour trouver le code secret" },
+  { value: "aventure", label: "📖 Aventure", desc: "Livre dont tu es le héros — narration + choix" },
+  { value: "mission", label: "🎯 Mission", desc: "Mission multi-phases avec boss final" },
   { value: "enquete", label: "🔍 Enquête", desc: "Collecte des indices pour résoudre le mystère" },
-  { value: "image-click", label: "🎯 Clique sur la bonne image", desc: "4 choix avec emoji, un seul correct" },
+  { value: "image-click", label: "🖼️ Clique sur la bonne image", desc: "4 choix avec emoji, un seul correct" },
   { value: "memory", label: "🧠 Memory", desc: "Associe les paires emoji ↔ mot" },
   { value: "quiz", label: "⏱️ Quiz chronométré", desc: "QCM avec minuterie par question" },
   { value: "anagram", label: "🔤 Anagramme", desc: "Remets les lettres dans l'ordre" },
 ];
+
+const AI_GRADES = ["CP", "CE1", "CE2", "CM1", "CM2", "6ème", "5ème", "4ème", "3ème"];
+const AI_SUPPORTED = ["escape", "aventure", "mission", "quiz", "memory", "anagram"];
 
 export default function GameForm({ error }: { error?: string }) {
   const router = useRouter();
@@ -96,6 +103,54 @@ export default function GameForm({ error }: { error?: string }) {
   const [enqueteResolution, setEnqueteResolution] = useState("");
   const [enqueteQuestions, setEnqueteQuestions] = useState<EnqueteQuestion[]>([EMPTY_ENQUETE_Q()]);
 
+  // title state (controlled for AI autofill)
+  const [title, setTitle] = useState("");
+
+  // AI generator state
+  const [aiSubject, setAiSubject] = useState("");
+  const [aiGrade, setAiGrade] = useState("CM2");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aventureConfig, setAventureConfig] = useState<Record<string, unknown> | null>(null);
+  const [missionConfig, setMissionConfig] = useState<Record<string, unknown> | null>(null);
+
+  async function handleAIGenerate() {
+    if (!aiSubject.trim()) return;
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const result = await generateGameWithAI(gameType, aiSubject, aiGrade);
+      if (!result.success || !result.config) {
+        setAiError(result.error ?? "Erreur inconnue");
+        return;
+      }
+      const parsed = JSON.parse(result.config) as Record<string, unknown>;
+      if (result.title) setTitle(result.title);
+      if (gameType === "aventure") {
+        setAventureConfig(parsed);
+      } else if (gameType === "mission") {
+        setMissionConfig(parsed);
+      } else if (gameType === "escape") {
+        if (parsed.scenario) setEscapeScenario(parsed.scenario as string);
+        if (parsed.setting) setEscapeSetting(parsed.setting as string);
+        if (parsed.questions) setEscapeQuestions(parsed.questions as EscapeQuestion[]);
+      } else if (gameType === "quiz") {
+        if (parsed.timePerQuestion) setTimePerQuestion(parsed.timePerQuestion as number);
+        if (parsed.questions) setQuestions(parsed.questions as QuizQuestion[]);
+      } else if (gameType === "memory") {
+        if (parsed.pairs) {
+          setPairs((parsed.pairs as { word: string; emoji: string }[]).map((p) => ({ ...p, id: crypto.randomUUID() })));
+        }
+      } else if (gameType === "anagram") {
+        if (parsed.words) setAnagramWords(parsed.words as AnagramWord[]);
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   function getConfig() {
     if (gameType === "image-click") return JSON.stringify({ rounds });
     if (gameType === "memory") return JSON.stringify({ pairs });
@@ -103,6 +158,8 @@ export default function GameForm({ error }: { error?: string }) {
     if (gameType === "anagram") return JSON.stringify({ words: anagramWords });
     if (gameType === "escape") return JSON.stringify({ scenario: escapeScenario, setting: escapeSetting, questions: escapeQuestions });
     if (gameType === "enquete") return JSON.stringify({ intro: enqueteIntro, mystery: enqueteMystery, setting: enqueteSetting, resolution: enqueteResolution, questions: enqueteQuestions });
+    if (gameType === "aventure") return aventureConfig ? JSON.stringify(aventureConfig) : "{}";
+    if (gameType === "mission") return missionConfig ? JSON.stringify(missionConfig) : "{}";
     return "{}";
   }
 
@@ -187,6 +244,8 @@ export default function GameForm({ error }: { error?: string }) {
           name="title"
           type="text"
           required
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="ex : Les animaux, Les couleurs, L'alphabet..."
           className="w-full h-12 border border-gray-200 rounded-[12px] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
         />
@@ -216,6 +275,78 @@ export default function GameForm({ error }: { error?: string }) {
           ))}
         </div>
       </div>
+
+      {/* ── AI generator ── */}
+      {AI_SUPPORTED.includes(gameType) && (
+        <div
+          className="bg-white rounded-[20px] p-6 mb-6"
+          style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(124,58,237,0.12)" }}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: "linear-gradient(135deg, #7C3AED 0%, #2563EB 100%)" }}
+            >
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[#0F172A]">Générer avec l&apos;IA</p>
+              <p className="text-xs text-[#94A3B8]">Décris le sujet et laisse Claude créer tout le jeu</p>
+            </div>
+          </div>
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              value={aiSubject}
+              onChange={(e) => setAiSubject(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAIGenerate(); } }}
+              placeholder="ex : Les fractions, La photosynthèse, La Révolution française…"
+              className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent"
+            />
+            <select
+              value={aiGrade}
+              onChange={(e) => setAiGrade(e.target.value)}
+              className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent bg-white"
+            >
+              {AI_GRADES.map((g) => <option key={g}>{g}</option>)}
+            </select>
+          </div>
+          {aiError && (
+            <p className="text-xs text-red-500 mb-3 px-1">{aiError}</p>
+          )}
+          <button
+            type="button"
+            onClick={handleAIGenerate}
+            disabled={aiLoading || !aiSubject.trim()}
+            className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: "linear-gradient(135deg, #7C3AED 0%, #2563EB 100%)" }}
+          >
+            {aiLoading ? (
+              <>
+                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Génération en cours…
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Générer le jeu avec l&apos;IA
+              </>
+            )}
+          </button>
+          {gameType === "aventure" && aventureConfig && (
+            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
+              <span>✅</span>
+              <span>Aventure générée — {(aventureConfig.chapters as unknown[])?.length ?? 0} chapitres</span>
+            </div>
+          )}
+          {gameType === "mission" && missionConfig && (
+            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
+              <span>✅</span>
+              <span>Mission générée — {(missionConfig.phases as unknown[])?.length ?? 0} phases + boss</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── image-click editor ── */}
       {gameType === "image-click" && (
@@ -623,6 +754,90 @@ export default function GameForm({ error }: { error?: string }) {
           <Button type="button" variant="outline" onClick={() => setEnqueteQuestions((prev) => [...prev, EMPTY_ENQUETE_Q()])}>
             + Ajouter une question
           </Button>
+        </div>
+      )}
+
+      {/* ── aventure editor ── */}
+      {gameType === "aventure" && (
+        <div
+          className="bg-white rounded-[20px] p-6 mb-6"
+          style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}
+        >
+          {!aventureConfig ? (
+            <div className="text-center py-4">
+              <div className="text-5xl mb-3">📖</div>
+              <p className="text-sm font-semibold text-[#0F172A] mb-1">Jeu d&apos;aventure interactif</p>
+              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">
+                Utilisez le générateur IA ci-dessus pour créer un livre dont vous êtes le héros avec narration, défis et choix multiples.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-[#0F172A]">Chapitres générés</p>
+                <button
+                  type="button"
+                  onClick={() => setAventureConfig(null)}
+                  className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors"
+                >
+                  Réinitialiser
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {(aventureConfig.chapters as Array<{ id: string; narrative: string }>)?.map((ch) => (
+                  <div key={ch.id} className="flex items-start gap-2 bg-[#F8FAFC] rounded-xl px-3 py-2">
+                    <span className="font-mono text-[10px] text-[#94A3B8] shrink-0 mt-0.5 uppercase">{ch.id}</span>
+                    <span className="text-[12px] text-[#475569] line-clamp-1">{ch.narrative}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── mission editor ── */}
+      {gameType === "mission" && (
+        <div
+          className="bg-white rounded-[20px] p-6 mb-6"
+          style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}
+        >
+          {!missionConfig ? (
+            <div className="text-center py-4">
+              <div className="text-5xl mb-3">🎯</div>
+              <p className="text-sm font-semibold text-[#0F172A] mb-1">Mission pédagogique</p>
+              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">
+                Utilisez le générateur IA ci-dessus pour créer une mission multi-phases avec briefing, phases de quiz et boss final.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-[#0F172A]">Structure de la mission</p>
+                <button
+                  type="button"
+                  onClick={() => setMissionConfig(null)}
+                  className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors"
+                >
+                  Réinitialiser
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {(missionConfig.phases as Array<{ title: string; questions: unknown[] }>)?.map((ph, i) => (
+                  <div key={i} className="flex items-center justify-between bg-[#F8FAFC] rounded-xl px-3 py-2">
+                    <span className="text-[12px] text-[#0F172A] font-medium">{ph.title}</span>
+                    <span className="text-[11px] text-[#94A3B8]">{ph.questions?.length ?? 0} questions</span>
+                  </div>
+                ))}
+                {!!missionConfig.bossChallenge && (
+                  <div className="flex items-center justify-between bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                    <span className="text-[12px] text-red-700 font-medium">⚔️ Boss final</span>
+                    <span className="text-[11px] text-red-500">1 défi</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

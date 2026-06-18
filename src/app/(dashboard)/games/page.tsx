@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Trash2, Brain, Timer, Puzzle, Target, Lock, Search, Play, Gamepad2 } from "lucide-react";
+import { Plus, Trash2, Brain, Timer, Puzzle, Target, Lock, Search, Play, Gamepad2, BookOpen, Crosshair } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { deleteGame } from "./actions";
 
@@ -18,6 +18,8 @@ const GAME_TYPE_META: Record<string, GameTypeMeta> = {
   anagram: { icon: Puzzle, label: "Anagramme", color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
   escape: { icon: Lock, label: "Escape Game", color: "#4F46E5", bg: "#EEF2FF", border: "#C7D2FE" },
   enquete: { icon: Search, label: "Enquête", color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+  aventure: { icon: BookOpen, label: "Aventure", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+  mission: { icon: Crosshair, label: "Mission", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
 };
 
 function itemCount(config: unknown, type: string): string {
@@ -28,6 +30,8 @@ function itemCount(config: unknown, type: string): string {
   if (type === "anagram") return `${(c?.words ?? []).length} mots`;
   if (type === "escape") return `${(c?.questions ?? []).length} énigmes`;
   if (type === "enquete") return `${(c?.questions ?? []).length} indices`;
+  if (type === "aventure") return `${(c?.chapters ?? []).length} chapitres`;
+  if (type === "mission") return `${(c?.phases ?? []).length} phases`;
   return "";
 }
 

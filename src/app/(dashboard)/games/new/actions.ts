@@ -39,6 +39,12 @@ export async function createGame(formData: FormData) {
   if (gameType === "enquete" && (!config.questions || config.questions.length === 0)) {
     redirect("/games/new?error=Au+moins+une+question+requise");
   }
+  if (gameType === "aventure" && (!config.chapters || (config.chapters as unknown[]).length === 0)) {
+    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+  }
+  if (gameType === "mission" && (!config.phases || (config.phases as unknown[]).length === 0)) {
+    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+  }
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("games").insert({
