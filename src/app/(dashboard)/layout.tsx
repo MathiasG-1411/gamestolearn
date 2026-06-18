@@ -28,6 +28,12 @@ export default function DashboardLayout({
               >
                 🎮 Jeux
               </Link>
+              <Link
+                href="/progress"
+                className="text-sm text-muted-foreground hover:text-foreground hover:bg-muted px-3 py-1.5 rounded-lg transition-colors"
+              >
+                📊 Progression
+              </Link>
             </div>
           </div>
           <form action={logout}>
