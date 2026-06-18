@@ -2,6 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import GamePlayer from "./game-player";
+import MemoryGame from "./games/memory-game";
+import QuizGame from "./games/quiz-game";
+import AnagramGame from "./games/anagram-game";
+import EscapeGame from "./games/escape-game";
+import EnqueteGame from "./games/enquete-game";
 
 export default async function PlayPage({
   params,
@@ -25,7 +30,24 @@ export default async function PlayPage({
 
   return (
     <main>
-      <GamePlayer game={game} studentId={studentId} />
+      {game.type === "memory" && (
+        <MemoryGame game={game} studentId={studentId} />
+      )}
+      {game.type === "quiz" && (
+        <QuizGame game={game} studentId={studentId} />
+      )}
+      {game.type === "anagram" && (
+        <AnagramGame game={game} studentId={studentId} />
+      )}
+      {game.type === "escape" && (
+        <EscapeGame game={game} studentId={studentId} />
+      )}
+      {game.type === "enquete" && (
+        <EnqueteGame game={game} studentId={studentId} />
+      )}
+      {(game.type === "image-click" || !["memory", "quiz", "anagram", "escape", "enquete"].includes(game.type)) && (
+        <GamePlayer game={game} studentId={studentId} />
+      )}
     </main>
   );
 }

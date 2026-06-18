@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { studentLogin } from "./actions";
 
 export default async function StudentPage({
@@ -9,57 +9,76 @@ export default async function StudentPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const cookieStore = await cookies();
-  if (cookieStore.get("student_id")) {
-    redirect("/student/home");
-  }
+  if (cookieStore.get("student_id")) redirect("/student/home");
 
   const { error } = await searchParams;
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-8">
+    <main
+      className="min-h-screen flex flex-col items-center justify-center p-6"
+      style={{ background: "linear-gradient(135deg, #FBBF24 0%, #F97316 50%, #EC4899 100%)" }}
+    >
       <div className="w-full max-w-sm">
-        <h1 className="text-3xl font-bold text-center mb-2">Espace élève</h1>
-        <p className="text-muted-foreground text-center mb-8">
-          Entre tes codes pour rejoindre ta classe
-        </p>
-
-        {error && (
-          <p className="text-sm text-destructive text-center mb-4">
-            {decodeURIComponent(error)}
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="text-6xl mb-3 drop-shadow-lg">🎒</div>
+          <h1 className="text-3xl font-extrabold text-white drop-shadow-sm mb-2">
+            Espace élève
+          </h1>
+          <p className="text-white/80 text-sm font-medium">
+            Entre tes codes pour jouer !
           </p>
-        )}
+        </div>
 
-        <form action={studentLogin} className="flex flex-col gap-4">
-          <div>
-            <label className="text-sm font-medium mb-1 block">
-              Code de classe
-            </label>
-            <input
-              name="classCode"
-              type="text"
-              required
-              placeholder="ex: abc123"
-              autoCapitalize="none"
-              className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background font-mono"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">
-              Ton code personnel
-            </label>
-            <input
-              name="studentCode"
-              type="text"
-              required
-              placeholder="ex: xyz789"
-              autoCapitalize="none"
-              className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background font-mono"
-            />
-          </div>
-          <Button type="submit" className="w-full mt-2">
-            Rejoindre ma classe
-          </Button>
-        </form>
+        {/* Card */}
+        <div className="bg-white rounded-[24px] shadow-2xl p-8">
+          {error && (
+            <div className="text-sm text-rose-600 bg-rose-50 border border-rose-100 px-4 py-3 rounded-xl mb-5 text-center font-medium">
+              {decodeURIComponent(error)}
+            </div>
+          )}
+
+          <form action={studentLogin} className="flex flex-col gap-5">
+            <div>
+              <label className="text-sm font-bold mb-2 block text-[#0F172A]">
+                🏫 Code de classe
+              </label>
+              <input
+                name="classCode"
+                type="text"
+                required
+                placeholder="ABC123"
+                autoCapitalize="characters"
+                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3.5 text-2xl font-mono tracking-widest text-center focus:outline-none focus:border-[#FBBF24] focus:ring-4 focus:ring-[#FBBF24]/20 uppercase transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-bold mb-2 block text-[#0F172A]">
+                🔑 Ton code personnel
+              </label>
+              <input
+                name="studentCode"
+                type="text"
+                required
+                placeholder="XYZ789"
+                autoCapitalize="characters"
+                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3.5 text-2xl font-mono tracking-widest text-center focus:outline-none focus:border-[#FBBF24] focus:ring-4 focus:ring-[#FBBF24]/20 uppercase transition-all"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-[#FBBF24] to-[#F97316] text-white font-extrabold py-4 rounded-2xl text-lg shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 mt-1"
+            >
+              C&apos;est parti ! 🚀
+            </button>
+          </form>
+        </div>
+
+        <p className="text-center mt-5 text-white/70 text-xs">
+          <Link href="/" className="hover:text-white transition-colors">
+            ← Retour à l&apos;accueil
+          </Link>
+        </p>
       </div>
     </main>
   );
