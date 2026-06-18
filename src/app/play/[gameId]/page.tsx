@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import GamePlayer from "./game-player";
+import AventureGame from "./games/aventure-game";
+import MissionGame from "./games/mission-game";
 
 export default async function PlayPage({
   params,
@@ -22,6 +24,22 @@ export default async function PlayPage({
     .single();
 
   if (!game) notFound();
+
+  if (game.type === "aventure") {
+    return (
+      <main>
+        <AventureGame game={game} studentId={studentId} />
+      </main>
+    );
+  }
+
+  if (game.type === "mission") {
+    return (
+      <main>
+        <MissionGame game={game} studentId={studentId} />
+      </main>
+    );
+  }
 
   return (
     <main>
