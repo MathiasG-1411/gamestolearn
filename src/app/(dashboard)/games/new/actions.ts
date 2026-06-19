@@ -45,6 +45,18 @@ export async function createGame(formData: FormData) {
   if (gameType === "mission" && (!config.phases || (config.phases as unknown[]).length === 0)) {
     redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
   }
+  if (gameType === "plateau" && (!config.spaces || (config.spaces as unknown[]).length === 0)) {
+    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+  }
+  if (gameType === "cartes" && (!config.cards || (config.cards as unknown[]).length === 0)) {
+    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+  }
+  if (gameType === "defi" && (!config.challenges || (config.challenges as unknown[]).length === 0)) {
+    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+  }
+  if (gameType === "construction" && (!config.pieces || (config.pieces as unknown[]).length === 0)) {
+    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+  }
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("games").insert({

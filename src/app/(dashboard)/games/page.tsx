@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Trash2, Brain, Timer, Puzzle, Target, Lock, Search, Play, Gamepad2, BookOpen, Crosshair } from "lucide-react";
+import { Plus, Trash2, Brain, Timer, Puzzle, Target, Lock, Search, Play, Gamepad2, BookOpen, Crosshair, Dices, Layers, Zap, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { deleteGame } from "./actions";
 
@@ -20,6 +20,10 @@ const GAME_TYPE_META: Record<string, GameTypeMeta> = {
   enquete: { icon: Search, label: "Enquête", color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
   aventure: { icon: BookOpen, label: "Aventure", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
   mission: { icon: Crosshair, label: "Mission", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
+  plateau: { icon: Dices, label: "Plateau", color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
+  cartes: { icon: Layers, label: "Cartes RPG", color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
+  defi: { icon: Zap, label: "Défi chrono", color: "#EA580C", bg: "#FFF7ED", border: "#FED7AA" },
+  construction: { icon: Wrench, label: "Construction", color: "#0369A1", bg: "#EFF6FF", border: "#BFDBFE" },
 };
 
 function itemCount(config: unknown, type: string): string {
@@ -32,6 +36,10 @@ function itemCount(config: unknown, type: string): string {
   if (type === "enquete") return `${(c?.questions ?? []).length} indices`;
   if (type === "aventure") return `${(c?.chapters ?? []).length} chapitres`;
   if (type === "mission") return `${(c?.phases ?? []).length} phases`;
+  if (type === "plateau") return `${(c?.spaces ?? []).length} cases`;
+  if (type === "cartes") return `${(c?.cards ?? []).length} cartes`;
+  if (type === "defi") return `${(c?.challenges ?? []).length} défis`;
+  if (type === "construction") return `${(c?.pieces ?? []).length} pièces`;
   return "";
 }
 

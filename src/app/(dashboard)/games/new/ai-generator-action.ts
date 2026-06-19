@@ -113,6 +113,91 @@ Varie les correctIndex.`,
   ]
 }
 Les mots doivent être en MAJUSCULES.`,
+
+  plateau: (subject, grade) => `Génère un Jeu de Plateau pour des élèves de ${grade} sur "${subject}".
+12 cases : 8 questions, 2 bonus, 1 repos, 1 malus (mélangés). Retourne UNIQUEMENT ce JSON:
+{
+  "title": "titre accrocheur",
+  "theme": "jungle",
+  "narrative": "introduction immersive en 2 phrases",
+  "characterEmoji": "emoji personnage",
+  "spaces": [
+    {"position":1,"type":"question","question":"question","choices":["A","B","C","D"],"correctIndex":0,"correctFeedback":"bravo!","wrongFeedback":"indice"},
+    {"position":2,"type":"bonus","narrative":"texte bonus","bonusSpaces":2},
+    {"position":3,"type":"question","question":"question","choices":["A","B","C","D"],"correctIndex":2,"correctFeedback":"super!","wrongFeedback":"indice"},
+    {"position":4,"type":"repos","narrative":"texte repos"},
+    {"position":5,"type":"question","question":"question","choices":["A","B","C","D"],"correctIndex":1,"correctFeedback":"excellent!","wrongFeedback":"indice"},
+    {"position":6,"type":"malus","narrative":"texte malus","malusSpaces":1},
+    {"position":7,"type":"question","question":"question","choices":["A","B","C","D"],"correctIndex":3,"correctFeedback":"bien!","wrongFeedback":"indice"},
+    {"position":8,"type":"bonus","narrative":"texte bonus","bonusSpaces":1},
+    {"position":9,"type":"question","question":"question","choices":["A","B","C","D"],"correctIndex":0,"correctFeedback":"parfait!","wrongFeedback":"indice"},
+    {"position":10,"type":"question","question":"question","choices":["A","B","C","D"],"correctIndex":2,"correctFeedback":"bravo!","wrongFeedback":"indice"},
+    {"position":11,"type":"question","question":"question","choices":["A","B","C","D"],"correctIndex":1,"correctFeedback":"super!","wrongFeedback":"indice"},
+    {"position":12,"type":"question","question":"question","choices":["A","B","C","D"],"correctIndex":3,"correctFeedback":"victoire!","wrongFeedback":"indice"}
+  ],
+  "endNarrative": "message de victoire en 2 phrases"
+}
+theme = jungle|espace|desert|ocean. Varie les correctIndex.`,
+
+  cartes: (subject, grade) => `Génère un Jeu de Cartes éducatif pour des élèves de ${grade} sur "${subject}".
+6 cartes. Retourne UNIQUEMENT ce JSON:
+{
+  "title": "titre accrocheur",
+  "narrative": "intro dramatique en 2 phrases",
+  "setting": "emoji décor",
+  "playerName": "Héros",
+  "playerEmoji": "emoji joueur",
+  "enemyName": "nom ennemi thématique",
+  "enemyEmoji": "emoji ennemi",
+  "playerMaxHP": 100,
+  "enemyMaxHP": 100,
+  "cards": [
+    {"id":"c1","name":"nom carte","emoji":"emoji","type":"attack","question":"question","choices":["A","B","C","D"],"correctIndex":0,"power":20,"description":"description courte","wrongPenalty":10},
+    {"id":"c2","name":"nom carte","emoji":"emoji","type":"defense","question":"question","choices":["A","B","C","D"],"correctIndex":1,"power":15,"description":"description","wrongPenalty":8},
+    {"id":"c3","name":"nom carte","emoji":"emoji","type":"special","question":"question","choices":["A","B","C","D"],"correctIndex":2,"power":25,"description":"description","wrongPenalty":12},
+    {"id":"c4","name":"nom carte","emoji":"emoji","type":"attack","question":"question","choices":["A","B","C","D"],"correctIndex":3,"power":18,"description":"description","wrongPenalty":10},
+    {"id":"c5","name":"nom carte","emoji":"emoji","type":"defense","question":"question","choices":["A","B","C","D"],"correctIndex":0,"power":20,"description":"description","wrongPenalty":9},
+    {"id":"c6","name":"nom carte","emoji":"emoji","type":"special","question":"question","choices":["A","B","C","D"],"correctIndex":1,"power":30,"description":"description","wrongPenalty":15}
+  ]
+}
+Alterne attack/defense/special. power entre 15-30, wrongPenalty entre 8-15. Varie les correctIndex.`,
+
+  defi: (subject, grade) => `Génère un Défi Chronométré pour des élèves de ${grade} sur "${subject}".
+6 défis, 90 secondes. Retourne UNIQUEMENT ce JSON:
+{
+  "title": "Défi : [titre accrocheur]",
+  "emoji": "emoji thématique",
+  "narrative": "intro urgente et dramatique en 2 phrases",
+  "totalTimeSeconds": 90,
+  "challenges": [
+    {"question":"question courte et directe","choices":["A","B","C","D"],"correctIndex":0,"points":100,"timeBonusSeconds":5},
+    {"question":"question","choices":["A","B","C","D"],"correctIndex":2,"points":100},
+    {"question":"question","choices":["A","B","C","D"],"correctIndex":1,"points":150,"timeBonusSeconds":8},
+    {"question":"question","choices":["A","B","C","D"],"correctIndex":3,"points":100},
+    {"question":"question","choices":["A","B","C","D"],"correctIndex":0,"points":200,"timeBonusSeconds":10},
+    {"question":"question finale difficile","choices":["A","B","C","D"],"correctIndex":2,"points":250}
+  ]
+}
+Varie les correctIndex. timeBonusSeconds optionnel (3-10s). Points croissants.`,
+
+  construction: (subject, grade) => `Génère un Jeu de Construction Progressive pour des élèves de ${grade} sur "${subject}".
+6 pièces. Retourne UNIQUEMENT ce JSON:
+{
+  "title": "titre accrocheur",
+  "narrative": "introduction immersive en 2 phrases",
+  "buildTarget": "ce qu'on construit (ex: une fusée, un château, une cellule)",
+  "buildEmoji": "emoji représentant l'objet fini",
+  "pieces": [
+    {"id":"p1","name":"nom de la pièce","emoji":"emoji pièce","question":"question","choices":["A","B","C","D"],"correctIndex":0,"hint":"indice si erreur","unlockText":"texte de découverte de la pièce"},
+    {"id":"p2","name":"nom","emoji":"emoji","question":"question","choices":["A","B","C","D"],"correctIndex":2,"hint":"indice","unlockText":"texte"},
+    {"id":"p3","name":"nom","emoji":"emoji","question":"question","choices":["A","B","C","D"],"correctIndex":1,"hint":"indice","unlockText":"texte"},
+    {"id":"p4","name":"nom","emoji":"emoji","question":"question","choices":["A","B","C","D"],"correctIndex":3,"hint":"indice","unlockText":"texte"},
+    {"id":"p5","name":"nom","emoji":"emoji","question":"question","choices":["A","B","C","D"],"correctIndex":0,"hint":"indice","unlockText":"texte"},
+    {"id":"p6","name":"nom","emoji":"emoji","question":"question","choices":["A","B","C","D"],"correctIndex":2,"hint":"indice","unlockText":"texte"}
+  ],
+  "completionText": "message de félicitation décrivant la construction terminée"
+}
+Varie les correctIndex.`,
 };
 
 export async function generateGameWithAI(

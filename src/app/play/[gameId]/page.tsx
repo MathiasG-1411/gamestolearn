@@ -9,6 +9,10 @@ import EscapeGame from "./games/escape-game";
 import EnqueteGame from "./games/enquete-game";
 import AventureGame from "./games/aventure-game";
 import MissionGame from "./games/mission-game";
+import PlateauGame from "./games/plateau-game";
+import CartesGame from "./games/cartes-game";
+import DefiGame from "./games/defi-game";
+import ConstructionGame from "./games/construction-game";
 
 export default async function PlayPage({
   params,
@@ -53,7 +57,19 @@ export default async function PlayPage({
       {game.type === "mission" && (
         <MissionGame game={game} studentId={studentId} />
       )}
-      {(game.type === "image-click" || !["memory", "quiz", "anagram", "escape", "enquete", "aventure", "mission"].includes(game.type)) && (
+      {game.type === "plateau" && (
+        <PlateauGame game={game} studentId={studentId} />
+      )}
+      {game.type === "cartes" && (
+        <CartesGame game={game} studentId={studentId} />
+      )}
+      {game.type === "defi" && (
+        <DefiGame game={game} studentId={studentId} />
+      )}
+      {game.type === "construction" && (
+        <ConstructionGame game={game} studentId={studentId} />
+      )}
+      {(game.type === "image-click" || !["memory", "quiz", "anagram", "escape", "enquete", "aventure", "mission", "plateau", "cartes", "defi", "construction"].includes(game.type)) && (
         <GamePlayer game={game} studentId={studentId} />
       )}
     </main>

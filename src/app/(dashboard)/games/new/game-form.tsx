@@ -63,6 +63,10 @@ const GAME_TYPES = [
   { value: "escape", label: "🔓 Escape Game", desc: "Résous des énigmes pour trouver le code secret" },
   { value: "aventure", label: "📖 Aventure", desc: "Livre dont tu es le héros — narration + choix" },
   { value: "mission", label: "🎯 Mission", desc: "Mission multi-phases avec boss final" },
+  { value: "plateau", label: "🎲 Jeu de plateau", desc: "Avance sur le plateau en répondant correctement" },
+  { value: "cartes", label: "🃏 Jeu de cartes", desc: "Duel RPG — active tes cartes en répondant" },
+  { value: "defi", label: "⚡ Défi chronométré", desc: "Course contre la montre — réponds vite !" },
+  { value: "construction", label: "🔧 Construction", desc: "Débloque des pièces pour construire quelque chose" },
   { value: "enquete", label: "🔍 Enquête", desc: "Collecte des indices pour résoudre le mystère" },
   { value: "image-click", label: "🖼️ Clique sur la bonne image", desc: "4 choix avec emoji, un seul correct" },
   { value: "memory", label: "🧠 Memory", desc: "Associe les paires emoji ↔ mot" },
@@ -71,7 +75,7 @@ const GAME_TYPES = [
 ];
 
 const AI_GRADES = ["CP", "CE1", "CE2", "CM1", "CM2", "6ème", "5ème", "4ème", "3ème"];
-const AI_SUPPORTED = ["escape", "aventure", "mission", "quiz", "memory", "anagram"];
+const AI_SUPPORTED = ["escape", "aventure", "mission", "plateau", "cartes", "defi", "construction", "quiz", "memory", "anagram"];
 
 export default function GameForm({ error }: { error?: string }) {
   const router = useRouter();
@@ -113,6 +117,10 @@ export default function GameForm({ error }: { error?: string }) {
   const [aiError, setAiError] = useState<string | null>(null);
   const [aventureConfig, setAventureConfig] = useState<Record<string, unknown> | null>(null);
   const [missionConfig, setMissionConfig] = useState<Record<string, unknown> | null>(null);
+  const [plateauConfig, setPlateauConfig] = useState<Record<string, unknown> | null>(null);
+  const [cartesConfig, setCartesConfig] = useState<Record<string, unknown> | null>(null);
+  const [defiConfig, setDefiConfig] = useState<Record<string, unknown> | null>(null);
+  const [constructionConfig, setConstructionConfig] = useState<Record<string, unknown> | null>(null);
 
   async function handleAIGenerate() {
     if (!aiSubject.trim()) return;
@@ -130,6 +138,14 @@ export default function GameForm({ error }: { error?: string }) {
         setAventureConfig(parsed);
       } else if (gameType === "mission") {
         setMissionConfig(parsed);
+      } else if (gameType === "plateau") {
+        setPlateauConfig(parsed);
+      } else if (gameType === "cartes") {
+        setCartesConfig(parsed);
+      } else if (gameType === "defi") {
+        setDefiConfig(parsed);
+      } else if (gameType === "construction") {
+        setConstructionConfig(parsed);
       } else if (gameType === "escape") {
         if (parsed.scenario) setEscapeScenario(parsed.scenario as string);
         if (parsed.setting) setEscapeSetting(parsed.setting as string);
@@ -160,6 +176,10 @@ export default function GameForm({ error }: { error?: string }) {
     if (gameType === "enquete") return JSON.stringify({ intro: enqueteIntro, mystery: enqueteMystery, setting: enqueteSetting, resolution: enqueteResolution, questions: enqueteQuestions });
     if (gameType === "aventure") return aventureConfig ? JSON.stringify(aventureConfig) : "{}";
     if (gameType === "mission") return missionConfig ? JSON.stringify(missionConfig) : "{}";
+    if (gameType === "plateau") return plateauConfig ? JSON.stringify(plateauConfig) : "{}";
+    if (gameType === "cartes") return cartesConfig ? JSON.stringify(cartesConfig) : "{}";
+    if (gameType === "defi") return defiConfig ? JSON.stringify(defiConfig) : "{}";
+    if (gameType === "construction") return constructionConfig ? JSON.stringify(constructionConfig) : "{}";
     return "{}";
   }
 
@@ -343,6 +363,30 @@ export default function GameForm({ error }: { error?: string }) {
             <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
               <span>✅</span>
               <span>Mission générée — {(missionConfig.phases as unknown[])?.length ?? 0} phases + boss</span>
+            </div>
+          )}
+          {gameType === "plateau" && plateauConfig && (
+            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
+              <span>✅</span>
+              <span>Plateau généré — {(plateauConfig.spaces as unknown[])?.length ?? 0} cases</span>
+            </div>
+          )}
+          {gameType === "cartes" && cartesConfig && (
+            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
+              <span>✅</span>
+              <span>Jeu de cartes généré — {(cartesConfig.cards as unknown[])?.length ?? 0} cartes</span>
+            </div>
+          )}
+          {gameType === "defi" && defiConfig && (
+            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
+              <span>✅</span>
+              <span>Défi généré — {(defiConfig.challenges as unknown[])?.length ?? 0} défis · {String(defiConfig.totalTimeSeconds ?? 90)}s</span>
+            </div>
+          )}
+          {gameType === "construction" && constructionConfig && (
+            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
+              <span>✅</span>
+              <span>Construction générée — {(constructionConfig.pieces as unknown[])?.length ?? 0} pièces</span>
             </div>
           )}
         </div>
@@ -835,6 +879,121 @@ export default function GameForm({ error }: { error?: string }) {
                     <span className="text-[11px] text-red-500">1 défi</span>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── plateau editor ── */}
+      {gameType === "plateau" && (
+        <div className="bg-white rounded-[20px] p-6 mb-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
+          {!plateauConfig ? (
+            <div className="text-center py-4">
+              <div className="text-5xl mb-3">🎲</div>
+              <p className="text-sm font-semibold text-[#0F172A] mb-1">Jeu de plateau</p>
+              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">Utilisez le générateur IA ci-dessus pour créer un parcours avec cases questions, bonus et pièges.</p>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-[#0F172A]">{(plateauConfig.spaces as unknown[])?.length ?? 0} cases générées</p>
+                <button type="button" onClick={() => setPlateauConfig(null)} className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors">Réinitialiser</button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(plateauConfig.spaces as Array<{ type: string; position: number }>)?.map((s, i) => (
+                  <div key={i} className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
+                    style={{ background: s.type === "bonus" ? "#f0fdf4" : s.type === "malus" ? "#fef2f2" : s.type === "repos" ? "#fefce8" : "#EFF6FF", color: s.type === "bonus" ? "#16a34a" : s.type === "malus" ? "#dc2626" : s.type === "repos" ? "#d97706" : "#2563EB" }}>
+                    {s.type === "bonus" ? "⭐" : s.type === "malus" ? "💀" : s.type === "repos" ? "🏕️" : s.position}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── cartes editor ── */}
+      {gameType === "cartes" && (
+        <div className="bg-white rounded-[20px] p-6 mb-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
+          {!cartesConfig ? (
+            <div className="text-center py-4">
+              <div className="text-5xl mb-3">🃏</div>
+              <p className="text-sm font-semibold text-[#0F172A] mb-1">Jeu de cartes RPG</p>
+              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">Utilisez le générateur IA pour créer un duel où l&apos;élève active des cartes en répondant aux questions.</p>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-[#0F172A]">{String(cartesConfig.playerEmoji ?? "")} vs {String(cartesConfig.enemyEmoji ?? "")} · {(cartesConfig.cards as unknown[])?.length ?? 0} cartes</p>
+                <button type="button" onClick={() => setCartesConfig(null)} className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors">Réinitialiser</button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(cartesConfig.cards as Array<{ name: string; emoji: string; type: string }>)?.map((c, i) => (
+                  <div key={i} className="flex items-center gap-1.5 bg-[#F8FAFC] rounded-xl px-3 py-1.5">
+                    <span>{c.emoji}</span>
+                    <span className="text-[11px] text-[#475569] font-medium">{c.name}</span>
+                    <span className="text-[10px]" style={{ color: c.type === "attack" ? "#dc2626" : c.type === "defense" ? "#2563EB" : "#7C3AED" }}>
+                      {c.type === "attack" ? "⚔️" : c.type === "defense" ? "🛡️" : "✨"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── defi editor ── */}
+      {gameType === "defi" && (
+        <div className="bg-white rounded-[20px] p-6 mb-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
+          {!defiConfig ? (
+            <div className="text-center py-4">
+              <div className="text-5xl mb-3">⚡</div>
+              <p className="text-sm font-semibold text-[#0F172A] mb-1">Défi chronométré</p>
+              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">L&apos;IA génère une série de défis rapides avec une barre de temps qui descend et des bonus si tu réponds vite.</p>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-[#0F172A]">{(defiConfig.challenges as unknown[])?.length ?? 0} défis · {String(defiConfig.totalTimeSeconds ?? 90)}s</p>
+                <button type="button" onClick={() => setDefiConfig(null)} className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors">Réinitialiser</button>
+              </div>
+              <div className="space-y-1">
+                {(defiConfig.challenges as Array<{ question: string; points: number }>)?.map((ch, i) => (
+                  <div key={i} className="flex items-center justify-between bg-[#F8FAFC] rounded-xl px-3 py-2">
+                    <span className="text-[12px] text-[#475569] line-clamp-1 flex-1">{ch.question}</span>
+                    <span className="text-[11px] text-[#94A3B8] ml-2 shrink-0">{ch.points} pts</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── construction editor ── */}
+      {gameType === "construction" && (
+        <div className="bg-white rounded-[20px] p-6 mb-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
+          {!constructionConfig ? (
+            <div className="text-center py-4">
+              <div className="text-5xl mb-3">🔧</div>
+              <p className="text-sm font-semibold text-[#0F172A] mb-1">Construction progressive</p>
+              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">Chaque bonne réponse débloque une pièce. L&apos;élève construit quelque chose au fil du jeu.</p>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-[#0F172A]">{String(constructionConfig.buildEmoji ?? "")} {String(constructionConfig.buildTarget ?? "")} · {(constructionConfig.pieces as unknown[])?.length ?? 0} pièces</p>
+                <button type="button" onClick={() => setConstructionConfig(null)} className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors">Réinitialiser</button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(constructionConfig.pieces as Array<{ name: string; emoji: string }>)?.map((p, i) => (
+                  <div key={i} className="flex items-center gap-1.5 bg-[#F8FAFC] rounded-xl px-3 py-1.5">
+                    <span>{p.emoji}</span>
+                    <span className="text-[11px] text-[#475569]">{p.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
