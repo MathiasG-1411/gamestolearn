@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Gamepad2, BarChart2,
-  Sparkles, LogOut, GraduationCap, ExternalLink,
+  Sparkles, LogOut, GraduationCap, ExternalLink, ClipboardList,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/login/actions";
 
@@ -12,6 +12,7 @@ const NAV = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Tableau de bord" },
   { href: "/classes", icon: Users, label: "Classes" },
   { href: "/games", icon: Gamepad2, label: "Jeux" },
+  { href: "/work-plans", icon: ClipboardList, label: "Plans de travail" },
   { href: "/progress", icon: BarChart2, label: "Progression" },
 ];
 

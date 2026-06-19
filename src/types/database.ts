@@ -157,6 +157,71 @@ export type Database = {
           }
         ];
       };
+      work_plans: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          title: string;
+          description: string | null;
+          game_ids: string[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          title: string;
+          description?: string | null;
+          game_ids?: string[];
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          teacher_id?: string;
+          title?: string;
+          description?: string | null;
+          game_ids?: string[];
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "work_plans_teacher_id_fkey";
+            columns: ["teacher_id"];
+            isOneToOne: false;
+            referencedRelation: "teachers";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      work_plan_classes: {
+        Row: {
+          plan_id: string;
+          class_id: string;
+        };
+        Insert: {
+          plan_id: string;
+          class_id: string;
+        };
+        Update: {
+          plan_id?: string;
+          class_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "work_plan_classes_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "work_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "work_plan_classes_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "classes";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
