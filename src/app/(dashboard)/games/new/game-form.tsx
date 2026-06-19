@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createGame } from "./actions";
 
@@ -35,36 +36,255 @@ const EMPTY_QUESTION = (): QuizQuestion => ({
 type AnagramWord = { word: string; hint: string; emoji: string };
 const EMPTY_WORD = (): AnagramWord => ({ word: "", hint: "", emoji: "" });
 
-// ── escape game types ────────────────────────────────────────────────
+// ── escape types ─────────────────────────────────────────────────────
 type EscapeQuestion = { question: string; choices: string[]; correctIndex: number; codeDigit: string; wrongHint: string };
 const EMPTY_ESCAPE_Q = (): EscapeQuestion => ({
-  question: "",
-  choices: ["", "", "", ""],
-  correctIndex: 0,
-  codeDigit: "",
-  wrongHint: "",
+  question: "", choices: ["", "", "", ""], correctIndex: 0, codeDigit: "", wrongHint: "",
 });
 
 // ── enquete types ────────────────────────────────────────────────────
 type EnqueteQuestion = { question: string; choices: string[]; correctIndex: number; clue: string; clueEmoji: string; wrongHint: string };
 const EMPTY_ENQUETE_Q = (): EnqueteQuestion => ({
-  question: "",
-  choices: ["", "", "", ""],
-  correctIndex: 0,
-  clue: "",
-  clueEmoji: "",
-  wrongHint: "",
+  question: "", choices: ["", "", "", ""], correctIndex: 0, clue: "", clueEmoji: "", wrongHint: "",
 });
 
-// ── game type descriptions ───────────────────────────────────────────
+// ── game types ───────────────────────────────────────────────────────
 const GAME_TYPES = [
   { value: "escape", label: "🔓 Escape Game", desc: "Résous des énigmes pour trouver le code secret" },
+  { value: "aventure", label: "📖 Aventure", desc: "Livre dont tu es le héros — narration + choix" },
+  { value: "mission", label: "🎯 Mission", desc: "Mission multi-phases avec boss final" },
+  { value: "plateau", label: "🎲 Jeu de plateau", desc: "Avance sur le plateau en répondant correctement" },
+  { value: "cartes", label: "🃏 Jeu de cartes", desc: "Duel RPG — active tes cartes en répondant" },
+  { value: "defi", label: "⚡ Défi chronométré", desc: "Course contre la montre — réponds vite !" },
+  { value: "construction", label: "🔧 Construction", desc: "Débloque des pièces pour construire quelque chose" },
   { value: "enquete", label: "🔍 Enquête", desc: "Collecte des indices pour résoudre le mystère" },
-  { value: "image-click", label: "🎯 Clique sur la bonne image", desc: "4 choix avec emoji, un seul correct" },
+  { value: "image-click", label: "🖼️ Clique sur la bonne image", desc: "4 choix avec emoji, un seul correct" },
   { value: "memory", label: "🧠 Memory", desc: "Associe les paires emoji ↔ mot" },
   { value: "quiz", label: "⏱️ Quiz chronométré", desc: "QCM avec minuterie par question" },
   { value: "anagram", label: "🔤 Anagramme", desc: "Remets les lettres dans l'ordre" },
 ];
+
+const COMPLEX_TYPES = ["aventure", "mission", "plateau", "cartes", "defi", "construction"];
+
+const JSON_EXAMPLES: Record<string, string> = {
+  aventure: `{
+  "title": "La Forêt Enchantée",
+  "theme": "foret",
+  "narrative": "Tu entres dans la forêt magique…",
+  "chapters": [
+    {
+      "id": "ch1",
+      "narrative": "Un gnome te barre la route.",
+      "challenge": {
+        "question": "Combien font 6 × 7 ?",
+        "choices": ["40", "42", "48"],
+        "correctIndex": 1,
+        "successText": "Le gnome s'écarte !",
+        "failText": "Essaie encore…"
+      },
+      "nextChapterId": "ch2"
+    }
+  ]
+}`,
+  mission: `{
+  "title": "Mission Sciences",
+  "narrative": "Agent, ta mission commence maintenant.",
+  "phases": [
+    {
+      "title": "Phase 1 — Infiltration",
+      "briefing": "Réponds aux questions pour avancer.",
+      "questions": [
+        {
+          "question": "Quelle planète est la plus proche du Soleil ?",
+          "choices": ["Vénus", "Mercure", "Mars"],
+          "correctIndex": 1,
+          "feedback": "Mercure est bien la plus proche !"
+        }
+      ]
+    }
+  ],
+  "bossChallenge": {
+    "question": "Quelle est la formule de l'eau ?",
+    "choices": ["H2O", "CO2", "O2"],
+    "correctIndex": 0,
+    "rewardText": "Mission accomplie !"
+  }
+}`,
+  plateau: `{
+  "title": "Plateau des Maths",
+  "theme": "jungle",
+  "narrative": "Bienvenue dans la jungle des chiffres !",
+  "characterEmoji": "🐒",
+  "spaces": [
+    {
+      "position": 1,
+      "type": "question",
+      "question": "Combien font 8 + 5 ?",
+      "choices": ["12", "13", "14"],
+      "correctIndex": 1,
+      "correctFeedback": "Parfait !",
+      "wrongFeedback": "Compte bien…"
+    },
+    { "position": 2, "type": "bonus", "bonusSpaces": 2, "narrative": "Case bonus ! Avance de 2 !" },
+    { "position": 3, "type": "repos", "narrative": "Pause bien méritée." }
+  ],
+  "endNarrative": "Tu as traversé la jungle !"
+}`,
+  cartes: `{
+  "title": "Duel Magique",
+  "narrative": "Un dragon menace le royaume !",
+  "setting": "château",
+  "playerName": "Héros",
+  "playerEmoji": "🧙",
+  "enemyName": "Dragon",
+  "enemyEmoji": "🐉",
+  "playerMaxHP": 100,
+  "enemyMaxHP": 100,
+  "cards": [
+    {
+      "id": "c1",
+      "name": "Boule de feu",
+      "emoji": "🔥",
+      "type": "attack",
+      "question": "Combien font 7 × 8 ?",
+      "choices": ["54", "56", "58"],
+      "correctIndex": 1,
+      "power": 25,
+      "description": "Inflige des dégâts de feu",
+      "wrongPenalty": 10
+    }
+  ]
+}`,
+  defi: `{
+  "title": "Défi Express",
+  "emoji": "⚡",
+  "narrative": "Prêt pour le grand défi ?",
+  "totalTimeSeconds": 90,
+  "challenges": [
+    {
+      "question": "Quelle est la capitale de la France ?",
+      "choices": ["Londres", "Paris", "Berlin", "Madrid"],
+      "correctIndex": 1,
+      "points": 10,
+      "timeBonusSeconds": 5
+    }
+  ]
+}`,
+  construction: `{
+  "title": "Construis ta Fusée",
+  "narrative": "Réponds aux questions pour assembler ta fusée !",
+  "buildTarget": "Fusée Spatiale",
+  "buildEmoji": "🚀",
+  "pieces": [
+    {
+      "id": "p1",
+      "name": "Moteur",
+      "emoji": "🔩",
+      "question": "Quelle planète est la plus grande ?",
+      "choices": ["Terre", "Jupiter", "Saturne"],
+      "correctIndex": 1,
+      "hint": "C'est la plus grande planète du système solaire.",
+      "unlockText": "Le moteur est assemblé !"
+    }
+  ],
+  "completionText": "Ta fusée est prête pour le décollage !"
+}`,
+};
+
+function JsonEditor({
+  type,
+  value,
+  onChange,
+}: {
+  type: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [showExample, setShowExample] = useState(false);
+  let parsed: unknown = null;
+  let parseError = "";
+  try {
+    if (value.trim()) parsed = JSON.parse(value);
+  } catch (e) {
+    parseError = e instanceof Error ? e.message : "JSON invalide";
+  }
+
+  const icons: Record<string, string> = {
+    aventure: "📖", mission: "🎯", plateau: "🎲",
+    cartes: "🃏", defi: "⚡", construction: "🔧",
+  };
+  const countKey: Record<string, string> = {
+    aventure: "chapters", mission: "phases", plateau: "spaces",
+    cartes: "cards", defi: "challenges", construction: "pieces",
+  };
+
+  const countItems =
+    parsed && typeof parsed === "object" && parsed !== null
+      ? ((parsed as Record<string, unknown>)[countKey[type]] as unknown[] | undefined)?.length ?? null
+      : null;
+
+  return (
+    <div
+      className="bg-white rounded-[20px] p-6 mb-6"
+      style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}
+    >
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-2xl">{icons[type]}</span>
+        <div>
+          <p className="text-sm font-semibold text-[#0F172A]">Configuration JSON</p>
+          <p className="text-xs text-[#94A3B8]">
+            Demande la config à Claude dans le chat, puis colle-la ici.
+          </p>
+        </div>
+      </div>
+
+      {/* Example toggle */}
+      <button
+        type="button"
+        onClick={() => setShowExample((v) => !v)}
+        className="flex items-center gap-1.5 text-xs text-[#2563EB] font-medium mb-3 hover:underline"
+      >
+        {showExample ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        {showExample ? "Masquer" : "Voir"} le format attendu
+      </button>
+
+      {showExample && (
+        <pre
+          className="text-[11px] text-[#475569] bg-[#F8FAFC] rounded-xl p-4 overflow-x-auto mb-4 leading-relaxed"
+          style={{ border: "1px solid #F1F5F9" }}
+        >
+          {JSON_EXAMPLES[type]}
+        </pre>
+      )}
+
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={`Colle ici le JSON généré pour ton ${type}…`}
+        rows={10}
+        spellCheck={false}
+        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[12px] font-mono focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-y"
+      />
+
+      {/* Validation feedback */}
+      {value.trim() && (
+        <div
+          className="mt-2 px-3 py-2 rounded-xl text-xs font-medium"
+          style={{
+            background: parseError ? "#FEF2F2" : "#ECFDF5",
+            color: parseError ? "#DC2626" : "#059669",
+          }}
+        >
+          {parseError
+            ? `❌ JSON invalide : ${parseError}`
+            : countItems !== null
+            ? `✅ JSON valide — ${countItems} ${countKey[type]} détecté${countItems !== 1 ? "s" : ""}`
+            : "✅ JSON valide"}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function GameForm({ error }: { error?: string }) {
   const router = useRouter();
@@ -96,6 +316,18 @@ export default function GameForm({ error }: { error?: string }) {
   const [enqueteResolution, setEnqueteResolution] = useState("");
   const [enqueteQuestions, setEnqueteQuestions] = useState<EnqueteQuestion[]>([EMPTY_ENQUETE_Q()]);
 
+  // title state
+  const [title, setTitle] = useState("");
+
+  // complex types JSON state
+  const [complexJson, setComplexJson] = useState<Record<string, string>>({
+    aventure: "", mission: "", plateau: "", cartes: "", defi: "", construction: "",
+  });
+
+  function setJsonForType(type: string, value: string) {
+    setComplexJson((prev) => ({ ...prev, [type]: value }));
+  }
+
   function getConfig() {
     if (gameType === "image-click") return JSON.stringify({ rounds });
     if (gameType === "memory") return JSON.stringify({ pairs });
@@ -103,6 +335,10 @@ export default function GameForm({ error }: { error?: string }) {
     if (gameType === "anagram") return JSON.stringify({ words: anagramWords });
     if (gameType === "escape") return JSON.stringify({ scenario: escapeScenario, setting: escapeSetting, questions: escapeQuestions });
     if (gameType === "enquete") return JSON.stringify({ intro: enqueteIntro, mystery: enqueteMystery, setting: enqueteSetting, resolution: enqueteResolution, questions: enqueteQuestions });
+    if (COMPLEX_TYPES.includes(gameType)) {
+      const raw = complexJson[gameType] ?? "";
+      try { JSON.parse(raw); return raw; } catch { return "{}"; }
+    }
     return "{}";
   }
 
@@ -187,7 +423,9 @@ export default function GameForm({ error }: { error?: string }) {
           name="title"
           type="text"
           required
-          placeholder="ex : Les animaux, Les couleurs, L'alphabet..."
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="ex : Les animaux, Les fractions, La Révolution française…"
           className="w-full h-12 border border-gray-200 rounded-[12px] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
         />
       </div>
@@ -216,6 +454,15 @@ export default function GameForm({ error }: { error?: string }) {
           ))}
         </div>
       </div>
+
+      {/* ── Complex types: JSON editor ── */}
+      {COMPLEX_TYPES.includes(gameType) && (
+        <JsonEditor
+          type={gameType}
+          value={complexJson[gameType] ?? ""}
+          onChange={(v) => setJsonForType(gameType, v)}
+        />
+      )}
 
       {/* ── image-click editor ── */}
       {gameType === "image-click" && (
@@ -399,9 +646,7 @@ export default function GameForm({ error }: { error?: string }) {
                       onChange={(e) => updateQuizChoice(qi, ci, e.target.value)}
                       placeholder={`Choix ${String.fromCharCode(65 + ci)}`}
                       className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent ${
-                        q.correctIndex === ci
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200"
+                        q.correctIndex === ci ? "border-green-500 bg-green-50" : "border-gray-200"
                       }`}
                     />
                   </div>
@@ -494,7 +739,7 @@ export default function GameForm({ error }: { error?: string }) {
             </div>
             <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Scénario d&apos;introduction</label>
             <textarea value={escapeScenario} onChange={(e) => setEscapeScenario(e.target.value)}
-              placeholder="Ex: Le château est verrouillé depuis des siècles. Résous les énigmes pour trouver la combinaison du portail..."
+              placeholder="Ex: Le château est verrouillé depuis des siècles. Résous les énigmes pour trouver la combinaison…"
               rows={3}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none" />
           </div>
@@ -536,7 +781,7 @@ export default function GameForm({ error }: { error?: string }) {
               <div>
                 <label className="text-xs font-medium text-[#475569] mb-1.5 block">Indice en cas d&apos;erreur (optionnel)</label>
                 <input type="text" value={q.wrongHint} onChange={(e) => updateEscapeQ(qi, "wrongHint", e.target.value)}
-                  placeholder="Ex: Compte par groupes de 7..."
+                  placeholder="Ex: Compte par groupes de 7…"
                   className="w-full h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
               </div>
             </div>
@@ -568,14 +813,14 @@ export default function GameForm({ error }: { error?: string }) {
             <div className="mb-4">
               <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Introduction / contexte</label>
               <textarea value={enqueteIntro} onChange={(e) => setEnqueteIntro(e.target.value)}
-                placeholder="Ex: Un vol mystérieux a eu lieu au château. Tu es détective junior et tu dois trouver le coupable..."
+                placeholder="Ex: Un vol mystérieux a eu lieu au château. Tu es détective junior…"
                 rows={2}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none" />
             </div>
             <div>
               <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Résolution finale</label>
               <textarea value={enqueteResolution} onChange={(e) => setEnqueteResolution(e.target.value)}
-                placeholder="Ex: Grâce à tes indices, tu as découvert que c'était le chambellan qui avait volé le trésor pour ..."
+                placeholder="Ex: Grâce à tes indices, tu as découvert que c'était le chambellan…"
                 rows={2}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none" />
             </div>
@@ -614,7 +859,7 @@ export default function GameForm({ error }: { error?: string }) {
                 <div className="flex-1">
                   <label className="text-xs font-medium text-[#475569] mb-1.5 block">Indice révélé si bonne réponse</label>
                   <input type="text" value={q.clue} onChange={(e) => updateEnqueteQ(qi, "clue", e.target.value)}
-                    placeholder="Ex: Le manteau rouge a été retrouvé près de la cave..."
+                    placeholder="Ex: Le manteau rouge a été retrouvé près de la cave…"
                     className="w-full h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
                 </div>
               </div>
