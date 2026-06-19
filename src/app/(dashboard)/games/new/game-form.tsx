@@ -2,10 +2,9 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createGame } from "./actions";
-import { generateGameWithAI } from "./ai-generator-action";
 
 // ── image-click types ──────────────────────────────────────────────
 type Choice = { emoji: string; label: string; isCorrect: boolean };
@@ -37,28 +36,19 @@ const EMPTY_QUESTION = (): QuizQuestion => ({
 type AnagramWord = { word: string; hint: string; emoji: string };
 const EMPTY_WORD = (): AnagramWord => ({ word: "", hint: "", emoji: "" });
 
-// ── escape game types ────────────────────────────────────────────────
+// ── escape types ─────────────────────────────────────────────────────
 type EscapeQuestion = { question: string; choices: string[]; correctIndex: number; codeDigit: string; wrongHint: string };
 const EMPTY_ESCAPE_Q = (): EscapeQuestion => ({
-  question: "",
-  choices: ["", "", "", ""],
-  correctIndex: 0,
-  codeDigit: "",
-  wrongHint: "",
+  question: "", choices: ["", "", "", ""], correctIndex: 0, codeDigit: "", wrongHint: "",
 });
 
 // ── enquete types ────────────────────────────────────────────────────
 type EnqueteQuestion = { question: string; choices: string[]; correctIndex: number; clue: string; clueEmoji: string; wrongHint: string };
 const EMPTY_ENQUETE_Q = (): EnqueteQuestion => ({
-  question: "",
-  choices: ["", "", "", ""],
-  correctIndex: 0,
-  clue: "",
-  clueEmoji: "",
-  wrongHint: "",
+  question: "", choices: ["", "", "", ""], correctIndex: 0, clue: "", clueEmoji: "", wrongHint: "",
 });
 
-// ── game type descriptions ───────────────────────────────────────────
+// ── game types ───────────────────────────────────────────────────────
 const GAME_TYPES = [
   { value: "escape", label: "🔓 Escape Game", desc: "Résous des énigmes pour trouver le code secret" },
   { value: "aventure", label: "📖 Aventure", desc: "Livre dont tu es le héros — narration + choix" },
@@ -74,8 +64,227 @@ const GAME_TYPES = [
   { value: "anagram", label: "🔤 Anagramme", desc: "Remets les lettres dans l'ordre" },
 ];
 
-const AI_GRADES = ["CP", "CE1", "CE2", "CM1", "CM2", "6ème", "5ème", "4ème", "3ème"];
-const AI_SUPPORTED = ["escape", "aventure", "mission", "plateau", "cartes", "defi", "construction", "quiz", "memory", "anagram"];
+const COMPLEX_TYPES = ["aventure", "mission", "plateau", "cartes", "defi", "construction"];
+
+const JSON_EXAMPLES: Record<string, string> = {
+  aventure: `{
+  "title": "La Forêt Enchantée",
+  "theme": "foret",
+  "narrative": "Tu entres dans la forêt magique…",
+  "chapters": [
+    {
+      "id": "ch1",
+      "narrative": "Un gnome te barre la route.",
+      "challenge": {
+        "question": "Combien font 6 × 7 ?",
+        "choices": ["40", "42", "48"],
+        "correctIndex": 1,
+        "successText": "Le gnome s'écarte !",
+        "failText": "Essaie encore…"
+      },
+      "nextChapterId": "ch2"
+    }
+  ]
+}`,
+  mission: `{
+  "title": "Mission Sciences",
+  "narrative": "Agent, ta mission commence maintenant.",
+  "phases": [
+    {
+      "title": "Phase 1 — Infiltration",
+      "briefing": "Réponds aux questions pour avancer.",
+      "questions": [
+        {
+          "question": "Quelle planète est la plus proche du Soleil ?",
+          "choices": ["Vénus", "Mercure", "Mars"],
+          "correctIndex": 1,
+          "feedback": "Mercure est bien la plus proche !"
+        }
+      ]
+    }
+  ],
+  "bossChallenge": {
+    "question": "Quelle est la formule de l'eau ?",
+    "choices": ["H2O", "CO2", "O2"],
+    "correctIndex": 0,
+    "rewardText": "Mission accomplie !"
+  }
+}`,
+  plateau: `{
+  "title": "Plateau des Maths",
+  "theme": "jungle",
+  "narrative": "Bienvenue dans la jungle des chiffres !",
+  "characterEmoji": "🐒",
+  "spaces": [
+    {
+      "position": 1,
+      "type": "question",
+      "question": "Combien font 8 + 5 ?",
+      "choices": ["12", "13", "14"],
+      "correctIndex": 1,
+      "correctFeedback": "Parfait !",
+      "wrongFeedback": "Compte bien…"
+    },
+    { "position": 2, "type": "bonus", "bonusSpaces": 2, "narrative": "Case bonus ! Avance de 2 !" },
+    { "position": 3, "type": "repos", "narrative": "Pause bien méritée." }
+  ],
+  "endNarrative": "Tu as traversé la jungle !"
+}`,
+  cartes: `{
+  "title": "Duel Magique",
+  "narrative": "Un dragon menace le royaume !",
+  "setting": "château",
+  "playerName": "Héros",
+  "playerEmoji": "🧙",
+  "enemyName": "Dragon",
+  "enemyEmoji": "🐉",
+  "playerMaxHP": 100,
+  "enemyMaxHP": 100,
+  "cards": [
+    {
+      "id": "c1",
+      "name": "Boule de feu",
+      "emoji": "🔥",
+      "type": "attack",
+      "question": "Combien font 7 × 8 ?",
+      "choices": ["54", "56", "58"],
+      "correctIndex": 1,
+      "power": 25,
+      "description": "Inflige des dégâts de feu",
+      "wrongPenalty": 10
+    }
+  ]
+}`,
+  defi: `{
+  "title": "Défi Express",
+  "emoji": "⚡",
+  "narrative": "Prêt pour le grand défi ?",
+  "totalTimeSeconds": 90,
+  "challenges": [
+    {
+      "question": "Quelle est la capitale de la France ?",
+      "choices": ["Londres", "Paris", "Berlin", "Madrid"],
+      "correctIndex": 1,
+      "points": 10,
+      "timeBonusSeconds": 5
+    }
+  ]
+}`,
+  construction: `{
+  "title": "Construis ta Fusée",
+  "narrative": "Réponds aux questions pour assembler ta fusée !",
+  "buildTarget": "Fusée Spatiale",
+  "buildEmoji": "🚀",
+  "pieces": [
+    {
+      "id": "p1",
+      "name": "Moteur",
+      "emoji": "🔩",
+      "question": "Quelle planète est la plus grande ?",
+      "choices": ["Terre", "Jupiter", "Saturne"],
+      "correctIndex": 1,
+      "hint": "C'est la plus grande planète du système solaire.",
+      "unlockText": "Le moteur est assemblé !"
+    }
+  ],
+  "completionText": "Ta fusée est prête pour le décollage !"
+}`,
+};
+
+function JsonEditor({
+  type,
+  value,
+  onChange,
+}: {
+  type: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [showExample, setShowExample] = useState(false);
+  let parsed: unknown = null;
+  let parseError = "";
+  try {
+    if (value.trim()) parsed = JSON.parse(value);
+  } catch (e) {
+    parseError = e instanceof Error ? e.message : "JSON invalide";
+  }
+
+  const icons: Record<string, string> = {
+    aventure: "📖", mission: "🎯", plateau: "🎲",
+    cartes: "🃏", defi: "⚡", construction: "🔧",
+  };
+  const countKey: Record<string, string> = {
+    aventure: "chapters", mission: "phases", plateau: "spaces",
+    cartes: "cards", defi: "challenges", construction: "pieces",
+  };
+
+  const countItems =
+    parsed && typeof parsed === "object" && parsed !== null
+      ? ((parsed as Record<string, unknown>)[countKey[type]] as unknown[] | undefined)?.length ?? null
+      : null;
+
+  return (
+    <div
+      className="bg-white rounded-[20px] p-6 mb-6"
+      style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}
+    >
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-2xl">{icons[type]}</span>
+        <div>
+          <p className="text-sm font-semibold text-[#0F172A]">Configuration JSON</p>
+          <p className="text-xs text-[#94A3B8]">
+            Demande la config à Claude dans le chat, puis colle-la ici.
+          </p>
+        </div>
+      </div>
+
+      {/* Example toggle */}
+      <button
+        type="button"
+        onClick={() => setShowExample((v) => !v)}
+        className="flex items-center gap-1.5 text-xs text-[#2563EB] font-medium mb-3 hover:underline"
+      >
+        {showExample ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        {showExample ? "Masquer" : "Voir"} le format attendu
+      </button>
+
+      {showExample && (
+        <pre
+          className="text-[11px] text-[#475569] bg-[#F8FAFC] rounded-xl p-4 overflow-x-auto mb-4 leading-relaxed"
+          style={{ border: "1px solid #F1F5F9" }}
+        >
+          {JSON_EXAMPLES[type]}
+        </pre>
+      )}
+
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={`Colle ici le JSON généré pour ton ${type}…`}
+        rows={10}
+        spellCheck={false}
+        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[12px] font-mono focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-y"
+      />
+
+      {/* Validation feedback */}
+      {value.trim() && (
+        <div
+          className="mt-2 px-3 py-2 rounded-xl text-xs font-medium"
+          style={{
+            background: parseError ? "#FEF2F2" : "#ECFDF5",
+            color: parseError ? "#DC2626" : "#059669",
+          }}
+        >
+          {parseError
+            ? `❌ JSON invalide : ${parseError}`
+            : countItems !== null
+            ? `✅ JSON valide — ${countItems} ${countKey[type]} détecté${countItems !== 1 ? "s" : ""}`
+            : "✅ JSON valide"}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function GameForm({ error }: { error?: string }) {
   const router = useRouter();
@@ -107,64 +316,16 @@ export default function GameForm({ error }: { error?: string }) {
   const [enqueteResolution, setEnqueteResolution] = useState("");
   const [enqueteQuestions, setEnqueteQuestions] = useState<EnqueteQuestion[]>([EMPTY_ENQUETE_Q()]);
 
-  // title state (controlled for AI autofill)
+  // title state
   const [title, setTitle] = useState("");
 
-  // AI generator state
-  const [aiSubject, setAiSubject] = useState("");
-  const [aiGrade, setAiGrade] = useState("CM2");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aventureConfig, setAventureConfig] = useState<Record<string, unknown> | null>(null);
-  const [missionConfig, setMissionConfig] = useState<Record<string, unknown> | null>(null);
-  const [plateauConfig, setPlateauConfig] = useState<Record<string, unknown> | null>(null);
-  const [cartesConfig, setCartesConfig] = useState<Record<string, unknown> | null>(null);
-  const [defiConfig, setDefiConfig] = useState<Record<string, unknown> | null>(null);
-  const [constructionConfig, setConstructionConfig] = useState<Record<string, unknown> | null>(null);
+  // complex types JSON state
+  const [complexJson, setComplexJson] = useState<Record<string, string>>({
+    aventure: "", mission: "", plateau: "", cartes: "", defi: "", construction: "",
+  });
 
-  async function handleAIGenerate() {
-    if (!aiSubject.trim()) return;
-    setAiLoading(true);
-    setAiError(null);
-    try {
-      const result = await generateGameWithAI(gameType, aiSubject, aiGrade);
-      if (!result.success || !result.config) {
-        setAiError(result.error ?? "Erreur inconnue");
-        return;
-      }
-      const parsed = JSON.parse(result.config) as Record<string, unknown>;
-      if (result.title) setTitle(result.title);
-      if (gameType === "aventure") {
-        setAventureConfig(parsed);
-      } else if (gameType === "mission") {
-        setMissionConfig(parsed);
-      } else if (gameType === "plateau") {
-        setPlateauConfig(parsed);
-      } else if (gameType === "cartes") {
-        setCartesConfig(parsed);
-      } else if (gameType === "defi") {
-        setDefiConfig(parsed);
-      } else if (gameType === "construction") {
-        setConstructionConfig(parsed);
-      } else if (gameType === "escape") {
-        if (parsed.scenario) setEscapeScenario(parsed.scenario as string);
-        if (parsed.setting) setEscapeSetting(parsed.setting as string);
-        if (parsed.questions) setEscapeQuestions(parsed.questions as EscapeQuestion[]);
-      } else if (gameType === "quiz") {
-        if (parsed.timePerQuestion) setTimePerQuestion(parsed.timePerQuestion as number);
-        if (parsed.questions) setQuestions(parsed.questions as QuizQuestion[]);
-      } else if (gameType === "memory") {
-        if (parsed.pairs) {
-          setPairs((parsed.pairs as { word: string; emoji: string }[]).map((p) => ({ ...p, id: crypto.randomUUID() })));
-        }
-      } else if (gameType === "anagram") {
-        if (parsed.words) setAnagramWords(parsed.words as AnagramWord[]);
-      }
-    } catch (e) {
-      setAiError(e instanceof Error ? e.message : "Erreur");
-    } finally {
-      setAiLoading(false);
-    }
+  function setJsonForType(type: string, value: string) {
+    setComplexJson((prev) => ({ ...prev, [type]: value }));
   }
 
   function getConfig() {
@@ -174,12 +335,10 @@ export default function GameForm({ error }: { error?: string }) {
     if (gameType === "anagram") return JSON.stringify({ words: anagramWords });
     if (gameType === "escape") return JSON.stringify({ scenario: escapeScenario, setting: escapeSetting, questions: escapeQuestions });
     if (gameType === "enquete") return JSON.stringify({ intro: enqueteIntro, mystery: enqueteMystery, setting: enqueteSetting, resolution: enqueteResolution, questions: enqueteQuestions });
-    if (gameType === "aventure") return aventureConfig ? JSON.stringify(aventureConfig) : "{}";
-    if (gameType === "mission") return missionConfig ? JSON.stringify(missionConfig) : "{}";
-    if (gameType === "plateau") return plateauConfig ? JSON.stringify(plateauConfig) : "{}";
-    if (gameType === "cartes") return cartesConfig ? JSON.stringify(cartesConfig) : "{}";
-    if (gameType === "defi") return defiConfig ? JSON.stringify(defiConfig) : "{}";
-    if (gameType === "construction") return constructionConfig ? JSON.stringify(constructionConfig) : "{}";
+    if (COMPLEX_TYPES.includes(gameType)) {
+      const raw = complexJson[gameType] ?? "";
+      try { JSON.parse(raw); return raw; } catch { return "{}"; }
+    }
     return "{}";
   }
 
@@ -266,7 +425,7 @@ export default function GameForm({ error }: { error?: string }) {
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="ex : Les animaux, Les couleurs, L'alphabet..."
+          placeholder="ex : Les animaux, Les fractions, La Révolution française…"
           className="w-full h-12 border border-gray-200 rounded-[12px] px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
         />
       </div>
@@ -296,100 +455,13 @@ export default function GameForm({ error }: { error?: string }) {
         </div>
       </div>
 
-      {/* ── AI generator ── */}
-      {AI_SUPPORTED.includes(gameType) && (
-        <div
-          className="bg-white rounded-[20px] p-6 mb-6"
-          style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(124,58,237,0.12)" }}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "linear-gradient(135deg, #7C3AED 0%, #2563EB 100%)" }}
-            >
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[#0F172A]">Générer avec l&apos;IA</p>
-              <p className="text-xs text-[#94A3B8]">Décris le sujet et laisse Claude créer tout le jeu</p>
-            </div>
-          </div>
-          <div className="flex gap-2 mb-3">
-            <input
-              type="text"
-              value={aiSubject}
-              onChange={(e) => setAiSubject(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAIGenerate(); } }}
-              placeholder="ex : Les fractions, La photosynthèse, La Révolution française…"
-              className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent"
-            />
-            <select
-              value={aiGrade}
-              onChange={(e) => setAiGrade(e.target.value)}
-              className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent bg-white"
-            >
-              {AI_GRADES.map((g) => <option key={g}>{g}</option>)}
-            </select>
-          </div>
-          {aiError && (
-            <p className="text-xs text-red-500 mb-3 px-1">{aiError}</p>
-          )}
-          <button
-            type="button"
-            onClick={handleAIGenerate}
-            disabled={aiLoading || !aiSubject.trim()}
-            className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: "linear-gradient(135deg, #7C3AED 0%, #2563EB 100%)" }}
-          >
-            {aiLoading ? (
-              <>
-                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Génération en cours…
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Générer le jeu avec l&apos;IA
-              </>
-            )}
-          </button>
-          {gameType === "aventure" && aventureConfig && (
-            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
-              <span>✅</span>
-              <span>Aventure générée — {(aventureConfig.chapters as unknown[])?.length ?? 0} chapitres</span>
-            </div>
-          )}
-          {gameType === "mission" && missionConfig && (
-            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
-              <span>✅</span>
-              <span>Mission générée — {(missionConfig.phases as unknown[])?.length ?? 0} phases + boss</span>
-            </div>
-          )}
-          {gameType === "plateau" && plateauConfig && (
-            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
-              <span>✅</span>
-              <span>Plateau généré — {(plateauConfig.spaces as unknown[])?.length ?? 0} cases</span>
-            </div>
-          )}
-          {gameType === "cartes" && cartesConfig && (
-            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
-              <span>✅</span>
-              <span>Jeu de cartes généré — {(cartesConfig.cards as unknown[])?.length ?? 0} cartes</span>
-            </div>
-          )}
-          {gameType === "defi" && defiConfig && (
-            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
-              <span>✅</span>
-              <span>Défi généré — {(defiConfig.challenges as unknown[])?.length ?? 0} défis · {String(defiConfig.totalTimeSeconds ?? 90)}s</span>
-            </div>
-          )}
-          {gameType === "construction" && constructionConfig && (
-            <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-sm text-green-700 flex items-center gap-2">
-              <span>✅</span>
-              <span>Construction générée — {(constructionConfig.pieces as unknown[])?.length ?? 0} pièces</span>
-            </div>
-          )}
-        </div>
+      {/* ── Complex types: JSON editor ── */}
+      {COMPLEX_TYPES.includes(gameType) && (
+        <JsonEditor
+          type={gameType}
+          value={complexJson[gameType] ?? ""}
+          onChange={(v) => setJsonForType(gameType, v)}
+        />
       )}
 
       {/* ── image-click editor ── */}
@@ -574,9 +646,7 @@ export default function GameForm({ error }: { error?: string }) {
                       onChange={(e) => updateQuizChoice(qi, ci, e.target.value)}
                       placeholder={`Choix ${String.fromCharCode(65 + ci)}`}
                       className={`flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent ${
-                        q.correctIndex === ci
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200"
+                        q.correctIndex === ci ? "border-green-500 bg-green-50" : "border-gray-200"
                       }`}
                     />
                   </div>
@@ -669,7 +739,7 @@ export default function GameForm({ error }: { error?: string }) {
             </div>
             <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Scénario d&apos;introduction</label>
             <textarea value={escapeScenario} onChange={(e) => setEscapeScenario(e.target.value)}
-              placeholder="Ex: Le château est verrouillé depuis des siècles. Résous les énigmes pour trouver la combinaison du portail..."
+              placeholder="Ex: Le château est verrouillé depuis des siècles. Résous les énigmes pour trouver la combinaison…"
               rows={3}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none" />
           </div>
@@ -711,7 +781,7 @@ export default function GameForm({ error }: { error?: string }) {
               <div>
                 <label className="text-xs font-medium text-[#475569] mb-1.5 block">Indice en cas d&apos;erreur (optionnel)</label>
                 <input type="text" value={q.wrongHint} onChange={(e) => updateEscapeQ(qi, "wrongHint", e.target.value)}
-                  placeholder="Ex: Compte par groupes de 7..."
+                  placeholder="Ex: Compte par groupes de 7…"
                   className="w-full h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
               </div>
             </div>
@@ -743,14 +813,14 @@ export default function GameForm({ error }: { error?: string }) {
             <div className="mb-4">
               <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Introduction / contexte</label>
               <textarea value={enqueteIntro} onChange={(e) => setEnqueteIntro(e.target.value)}
-                placeholder="Ex: Un vol mystérieux a eu lieu au château. Tu es détective junior et tu dois trouver le coupable..."
+                placeholder="Ex: Un vol mystérieux a eu lieu au château. Tu es détective junior…"
                 rows={2}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none" />
             </div>
             <div>
               <label className="text-xs font-semibold text-[#0F172A] mb-1.5 block">Résolution finale</label>
               <textarea value={enqueteResolution} onChange={(e) => setEnqueteResolution(e.target.value)}
-                placeholder="Ex: Grâce à tes indices, tu as découvert que c'était le chambellan qui avait volé le trésor pour ..."
+                placeholder="Ex: Grâce à tes indices, tu as découvert que c'était le chambellan…"
                 rows={2}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none" />
             </div>
@@ -789,7 +859,7 @@ export default function GameForm({ error }: { error?: string }) {
                 <div className="flex-1">
                   <label className="text-xs font-medium text-[#475569] mb-1.5 block">Indice révélé si bonne réponse</label>
                   <input type="text" value={q.clue} onChange={(e) => updateEnqueteQ(qi, "clue", e.target.value)}
-                    placeholder="Ex: Le manteau rouge a été retrouvé près de la cave..."
+                    placeholder="Ex: Le manteau rouge a été retrouvé près de la cave…"
                     className="w-full h-10 border border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent" />
                 </div>
               </div>
@@ -798,205 +868,6 @@ export default function GameForm({ error }: { error?: string }) {
           <Button type="button" variant="outline" onClick={() => setEnqueteQuestions((prev) => [...prev, EMPTY_ENQUETE_Q()])}>
             + Ajouter une question
           </Button>
-        </div>
-      )}
-
-      {/* ── aventure editor ── */}
-      {gameType === "aventure" && (
-        <div
-          className="bg-white rounded-[20px] p-6 mb-6"
-          style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}
-        >
-          {!aventureConfig ? (
-            <div className="text-center py-4">
-              <div className="text-5xl mb-3">📖</div>
-              <p className="text-sm font-semibold text-[#0F172A] mb-1">Jeu d&apos;aventure interactif</p>
-              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">
-                Utilisez le générateur IA ci-dessus pour créer un livre dont vous êtes le héros avec narration, défis et choix multiples.
-              </p>
-            </div>
-          ) : (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-[#0F172A]">Chapitres générés</p>
-                <button
-                  type="button"
-                  onClick={() => setAventureConfig(null)}
-                  className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors"
-                >
-                  Réinitialiser
-                </button>
-              </div>
-              <div className="space-y-1.5">
-                {(aventureConfig.chapters as Array<{ id: string; narrative: string }>)?.map((ch) => (
-                  <div key={ch.id} className="flex items-start gap-2 bg-[#F8FAFC] rounded-xl px-3 py-2">
-                    <span className="font-mono text-[10px] text-[#94A3B8] shrink-0 mt-0.5 uppercase">{ch.id}</span>
-                    <span className="text-[12px] text-[#475569] line-clamp-1">{ch.narrative}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── mission editor ── */}
-      {gameType === "mission" && (
-        <div
-          className="bg-white rounded-[20px] p-6 mb-6"
-          style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}
-        >
-          {!missionConfig ? (
-            <div className="text-center py-4">
-              <div className="text-5xl mb-3">🎯</div>
-              <p className="text-sm font-semibold text-[#0F172A] mb-1">Mission pédagogique</p>
-              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">
-                Utilisez le générateur IA ci-dessus pour créer une mission multi-phases avec briefing, phases de quiz et boss final.
-              </p>
-            </div>
-          ) : (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-[#0F172A]">Structure de la mission</p>
-                <button
-                  type="button"
-                  onClick={() => setMissionConfig(null)}
-                  className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors"
-                >
-                  Réinitialiser
-                </button>
-              </div>
-              <div className="space-y-1.5">
-                {(missionConfig.phases as Array<{ title: string; questions: unknown[] }>)?.map((ph, i) => (
-                  <div key={i} className="flex items-center justify-between bg-[#F8FAFC] rounded-xl px-3 py-2">
-                    <span className="text-[12px] text-[#0F172A] font-medium">{ph.title}</span>
-                    <span className="text-[11px] text-[#94A3B8]">{ph.questions?.length ?? 0} questions</span>
-                  </div>
-                ))}
-                {!!missionConfig.bossChallenge && (
-                  <div className="flex items-center justify-between bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-                    <span className="text-[12px] text-red-700 font-medium">⚔️ Boss final</span>
-                    <span className="text-[11px] text-red-500">1 défi</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── plateau editor ── */}
-      {gameType === "plateau" && (
-        <div className="bg-white rounded-[20px] p-6 mb-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
-          {!plateauConfig ? (
-            <div className="text-center py-4">
-              <div className="text-5xl mb-3">🎲</div>
-              <p className="text-sm font-semibold text-[#0F172A] mb-1">Jeu de plateau</p>
-              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">Utilisez le générateur IA ci-dessus pour créer un parcours avec cases questions, bonus et pièges.</p>
-            </div>
-          ) : (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-[#0F172A]">{(plateauConfig.spaces as unknown[])?.length ?? 0} cases générées</p>
-                <button type="button" onClick={() => setPlateauConfig(null)} className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors">Réinitialiser</button>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {(plateauConfig.spaces as Array<{ type: string; position: number }>)?.map((s, i) => (
-                  <div key={i} className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
-                    style={{ background: s.type === "bonus" ? "#f0fdf4" : s.type === "malus" ? "#fef2f2" : s.type === "repos" ? "#fefce8" : "#EFF6FF", color: s.type === "bonus" ? "#16a34a" : s.type === "malus" ? "#dc2626" : s.type === "repos" ? "#d97706" : "#2563EB" }}>
-                    {s.type === "bonus" ? "⭐" : s.type === "malus" ? "💀" : s.type === "repos" ? "🏕️" : s.position}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── cartes editor ── */}
-      {gameType === "cartes" && (
-        <div className="bg-white rounded-[20px] p-6 mb-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
-          {!cartesConfig ? (
-            <div className="text-center py-4">
-              <div className="text-5xl mb-3">🃏</div>
-              <p className="text-sm font-semibold text-[#0F172A] mb-1">Jeu de cartes RPG</p>
-              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">Utilisez le générateur IA pour créer un duel où l&apos;élève active des cartes en répondant aux questions.</p>
-            </div>
-          ) : (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-[#0F172A]">{String(cartesConfig.playerEmoji ?? "")} vs {String(cartesConfig.enemyEmoji ?? "")} · {(cartesConfig.cards as unknown[])?.length ?? 0} cartes</p>
-                <button type="button" onClick={() => setCartesConfig(null)} className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors">Réinitialiser</button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {(cartesConfig.cards as Array<{ name: string; emoji: string; type: string }>)?.map((c, i) => (
-                  <div key={i} className="flex items-center gap-1.5 bg-[#F8FAFC] rounded-xl px-3 py-1.5">
-                    <span>{c.emoji}</span>
-                    <span className="text-[11px] text-[#475569] font-medium">{c.name}</span>
-                    <span className="text-[10px]" style={{ color: c.type === "attack" ? "#dc2626" : c.type === "defense" ? "#2563EB" : "#7C3AED" }}>
-                      {c.type === "attack" ? "⚔️" : c.type === "defense" ? "🛡️" : "✨"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── defi editor ── */}
-      {gameType === "defi" && (
-        <div className="bg-white rounded-[20px] p-6 mb-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
-          {!defiConfig ? (
-            <div className="text-center py-4">
-              <div className="text-5xl mb-3">⚡</div>
-              <p className="text-sm font-semibold text-[#0F172A] mb-1">Défi chronométré</p>
-              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">L&apos;IA génère une série de défis rapides avec une barre de temps qui descend et des bonus si tu réponds vite.</p>
-            </div>
-          ) : (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-[#0F172A]">{(defiConfig.challenges as unknown[])?.length ?? 0} défis · {String(defiConfig.totalTimeSeconds ?? 90)}s</p>
-                <button type="button" onClick={() => setDefiConfig(null)} className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors">Réinitialiser</button>
-              </div>
-              <div className="space-y-1">
-                {(defiConfig.challenges as Array<{ question: string; points: number }>)?.map((ch, i) => (
-                  <div key={i} className="flex items-center justify-between bg-[#F8FAFC] rounded-xl px-3 py-2">
-                    <span className="text-[12px] text-[#475569] line-clamp-1 flex-1">{ch.question}</span>
-                    <span className="text-[11px] text-[#94A3B8] ml-2 shrink-0">{ch.points} pts</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── construction editor ── */}
-      {gameType === "construction" && (
-        <div className="bg-white rounded-[20px] p-6 mb-6" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.05)" }}>
-          {!constructionConfig ? (
-            <div className="text-center py-4">
-              <div className="text-5xl mb-3">🔧</div>
-              <p className="text-sm font-semibold text-[#0F172A] mb-1">Construction progressive</p>
-              <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">Chaque bonne réponse débloque une pièce. L&apos;élève construit quelque chose au fil du jeu.</p>
-            </div>
-          ) : (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-[#0F172A]">{String(constructionConfig.buildEmoji ?? "")} {String(constructionConfig.buildTarget ?? "")} · {(constructionConfig.pieces as unknown[])?.length ?? 0} pièces</p>
-                <button type="button" onClick={() => setConstructionConfig(null)} className="text-xs text-[#94A3B8] hover:text-red-500 transition-colors">Réinitialiser</button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {(constructionConfig.pieces as Array<{ name: string; emoji: string }>)?.map((p, i) => (
-                  <div key={i} className="flex items-center gap-1.5 bg-[#F8FAFC] rounded-xl px-3 py-1.5">
-                    <span>{p.emoji}</span>
-                    <span className="text-[11px] text-[#475569]">{p.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 

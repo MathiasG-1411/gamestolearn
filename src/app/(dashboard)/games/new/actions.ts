@@ -40,22 +40,22 @@ export async function createGame(formData: FormData) {
     redirect("/games/new?error=Au+moins+une+question+requise");
   }
   if (gameType === "aventure" && (!config.chapters || (config.chapters as unknown[]).length === 0)) {
-    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+    redirect("/games/new?error=Au+moins+un+chapitre+requis");
   }
   if (gameType === "mission" && (!config.phases || (config.phases as unknown[]).length === 0)) {
-    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+    redirect("/games/new?error=Au+moins+une+phase+requise");
   }
   if (gameType === "plateau" && (!config.spaces || (config.spaces as unknown[]).length === 0)) {
-    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+    redirect("/games/new?error=Au+moins+une+case+requise");
   }
   if (gameType === "cartes" && (!config.cards || (config.cards as unknown[]).length === 0)) {
-    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+    redirect("/games/new?error=Au+moins+une+carte+requise");
   }
   if (gameType === "defi" && (!config.challenges || (config.challenges as unknown[]).length === 0)) {
-    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+    redirect("/games/new?error=Au+moins+un+d%C3%A9fi+requis");
   }
   if (gameType === "construction" && (!config.pieces || (config.pieces as unknown[]).length === 0)) {
-    redirect("/games/new?error=Générez+d'abord+le+jeu+avec+l'IA");
+    redirect("/games/new?error=Au+moins+une+pi%C3%A8ce+requise");
   }
 
   const supabase = createAdminClient();
