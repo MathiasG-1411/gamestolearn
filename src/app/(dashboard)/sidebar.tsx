@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Gamepad2, BarChart2,
-  Sparkles, LogOut, GraduationCap, ExternalLink, ClipboardList,
+  Sparkles, LogOut, GraduationCap, ExternalLink, ClipboardList, BookOpen,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/login/actions";
 
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/games", icon: Gamepad2, label: "Jeux" },
   { href: "/work-plans", icon: ClipboardList, label: "Plans de travail" },
   { href: "/progress", icon: BarChart2, label: "Progression" },
+  { href: "/exemples", icon: BookOpen, label: "Exemples JSON" },
 ];
 
 interface SidebarProps {
