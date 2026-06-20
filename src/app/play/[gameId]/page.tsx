@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import GamePlayer from "./game-player";
 import MemoryGame from "./games/memory-game";
 import QuizGame from "./games/quiz-game";
@@ -16,12 +17,25 @@ import ConstructionGame from "./games/construction-game";
 
 export default async function PlayPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ gameId: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
-  const cookieStore = await cookies();
-  const studentId = cookieStore.get("student_id")?.value;
-  if (!studentId) redirect("/student");
+  const { preview } = await searchParams;
+  const isPreview = preview === "true";
+
+  let studentId: string;
+  if (isPreview) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
+    studentId = "preview";
+  } else {
+    const cookieStore = await cookies();
+    studentId = cookieStore.get("student_id")?.value ?? "";
+    if (!studentId) redirect("/student");
+  }
 
   const { gameId } = await params;
   const supabase = createAdminClient();
@@ -35,7 +49,13 @@ export default async function PlayPage({
   if (!game) notFound();
 
   return (
-    <main>
+    <main className="relative">
+      {isPreview && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 text-xs font-semibold text-white" style={{ background: "#7C3AED" }}>
+          <span>👁️ Mode aperçu — scores non enregistrés</span>
+          <a href="/games" className="underline hover:no-underline">← Retour aux jeux</a>
+        </div>
+      )}
       {game.type === "memory" && (
         <MemoryGame game={game} studentId={studentId} />
       )}

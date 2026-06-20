@@ -7,6 +7,7 @@ export async function saveScore(
   gameId: string,
   score: number
 ) {
+  if (studentId === "preview") return;
   const supabase = createAdminClient();
   await supabase.from("progress").insert({ student_id: studentId, game_id: gameId, score });
 }

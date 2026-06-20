@@ -115,12 +115,17 @@ export default async function GamesPage() {
 
                 {/* Card footer */}
                 <div
-                  className="flex items-center justify-between px-5 py-3"
+                  className="flex items-center justify-between px-5 py-3 gap-2"
                   style={{ borderTop: "1px solid #F8FAFC", background: "#FAFAFA" }}
                 >
-                  <span className="text-[11px] text-[#CBD5E1]">
-                    {new Date(game.created_at).toLocaleDateString("fr-FR")}
-                  </span>
+                  <Link
+                    href={`/play/${game.id}?preview=true`}
+                    className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-colors"
+                    style={{ color: meta.color, background: meta.bg }}
+                  >
+                    <Play className="w-3 h-3" />
+                    Tester
+                  </Link>
                   <form action={deleteGame}>
                     <input type="hidden" name="gameId" value={game.id} />
                     <button
