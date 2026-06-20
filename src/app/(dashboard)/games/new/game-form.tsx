@@ -70,7 +70,10 @@ const JSON_EXAMPLES: Record<string, string> = {
   aventure: `{
   "title": "La Forêt Enchantée",
   "theme": "foret",
-  "narrative": "Tu entres dans la forêt magique…",
+  "intro": "Tu entres dans la forêt magique…",
+  "character": "Héros",
+  "characterEmoji": "🧝",
+  "startChapterId": "ch1",
   "chapters": [
     {
       "id": "ch1",
@@ -79,12 +82,15 @@ const JSON_EXAMPLES: Record<string, string> = {
         "question": "Combien font 6 × 7 ?",
         "choices": ["40", "42", "48"],
         "correctIndex": 1,
-        "successText": "Le gnome s'écarte !",
-        "failText": "Essaie encore…"
+        "correctFeedback": "Le gnome s'écarte !",
+        "wrongFeedback": "Essaie encore…"
       },
-      "nextChapterId": "ch2"
+      "correctNext": "end_good",
+      "wrongNext": "ch1"
     }
-  ]
+  ],
+  "endingGood": { "text": "Tu as traversé la forêt !", "emoji": "🏆", "xp": 100 },
+  "endingBad": { "text": "La forêt reste mystérieuse…", "emoji": "😔", "xp": 20 }
 }`,
   mission: `{
   "title": "Mission Sciences",

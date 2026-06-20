@@ -13,65 +13,66 @@ const EXAMPLES = [
     color: "#7C3AED",
     json: {
       title: "L'Expédition en Égypte Ancienne",
-      theme: "desert",
-      narrative:
+      theme: "chateau",
+      intro:
         "Tu es un jeune archéologue en mission secrète. Le sable chaud crisse sous tes bottes alors que tu approches des grandes pyramides de Gizeh…",
+      character: "Archéologue",
+      characterEmoji: "🗺️",
+      startChapterId: "ch1",
       chapters: [
         {
           id: "ch1",
           narrative:
-            "Devant toi se dresse le grand Sphinx. Ses yeux de pierre semblent te regarder. Un gardien surgit : « Pour entrer, tu dois répondre à mon énigme ! »",
+            "Devant toi se dresse le grand Sphinx. Un gardien surgit : « Pour entrer, tu dois répondre à mon énigme ! »",
           challenge: {
             question: "Quel pharaon a fait construire la Grande Pyramide de Gizeh ?",
             choices: ["Ramsès II", "Khéops", "Toutânkhamon"],
             correctIndex: 1,
-            successText: "« Bien parlé, jeune explorateur ! » Le gardien s'écarte.",
-            failText: "« Tu dois mieux connaître l'histoire ! Réfléchis… » dit le gardien.",
+            correctFeedback: "« Bien parlé, jeune explorateur ! » Le gardien s'écarte.",
+            wrongFeedback: "Le gardien fronce les sourcils… Réfléchis encore !",
           },
-          nextChapterId: "ch2",
+          correctNext: "ch2",
+          wrongNext: "ch1",
         },
         {
           id: "ch2",
           narrative:
-            "Tu entres dans un couloir sombre. Sur les murs, des hiéroglyphes brillent à la lueur de ta torche. Une question est gravée dans la pierre…",
+            "Tu entres dans un couloir sombre. Des hiéroglyphes brillent à la lueur de ta torche. Une question est gravée dans la pierre…",
           challenge: {
-            question: "Le Nil est le plus long fleuve du monde. Dans quel sens coule-t-il ?",
+            question: "Le Nil coule dans quel sens ?",
             choices: ["Du nord au sud", "Du sud au nord", "D'est en ouest"],
             correctIndex: 1,
-            successText: "Une porte secrète s'ouvre ! Tu avances dans le couloir.",
-            failText: "Une petite décharge électrique te pique le bout des doigts. Essaie encore !",
+            correctFeedback: "Une porte secrète s'ouvre ! Tu avances dans le couloir.",
+            wrongFeedback: "Une décharge te pique les doigts. Essaie encore !",
           },
-          nextChapterId: "ch3",
+          correctNext: "ch3",
+          wrongNext: "ch2",
         },
         {
           id: "ch3",
           narrative:
             "Tu arrives dans la chambre du pharaon. Une voix mystérieuse résonne : « Prouve que tu mérites ce trésor… »",
           challenge: {
-            question:
-              "Quel est le nom de la crue annuelle du Nil qui fertilisait les terres d'Égypte ?",
-            choices: ["L'inondation", "L'akhet", "La pluie sacrée"],
-            correctIndex: 1,
-            successText: "La momie se rendort paisiblement. Le coffre s'ouvre !",
-            failText: "La momie grogne… Il vaut mieux réviser ta leçon d'histoire !",
-          },
-          nextChapterId: "ch4",
-        },
-        {
-          id: "ch4",
-          narrative:
-            "Dans le coffre, tu trouves un parchemin. Dessus est écrit un calcul en hiéroglyphes… Tu dois le résoudre pour t'échapper !",
-          challenge: {
             question: "Combien font 47 + 36 ?",
             choices: ["73", "83", "93"],
             correctIndex: 1,
-            successText:
-              "Un faisceau de lumière illumine la sortie. Tu t'échappes avec le trésor ! Félicitations, aventurier !",
-            failText: "Le calcul est incorrect… Compte encore une fois.",
+            correctFeedback: "Le coffre s'ouvre ! Tu t'échappes avec le trésor !",
+            wrongFeedback: "Le calcul est incorrect… Compte encore une fois.",
           },
-          nextChapterId: null,
+          correctNext: "end_good",
+          wrongNext: "ch3",
         },
       ],
+      endingGood: {
+        text: "Félicitations ! Tu as résolu toutes les énigmes et ramené le trésor. Tu es un vrai archéologue !",
+        emoji: "🏆",
+        xp: 100,
+      },
+      endingBad: {
+        text: "L'aventure s'arrête ici. Entraîne-toi et reviens relever le défi !",
+        emoji: "😔",
+        xp: 20,
+      },
     },
   },
   {
