@@ -50,6 +50,7 @@ const EMPTY_ENQUETE_Q = (): EnqueteQuestion => ({
 
 // ── game types ───────────────────────────────────────────────────────
 const GAME_TYPES = [
+  { value: "quete", label: "🧭 Quête", desc: "Plusieurs salles, inventaire, explications + remédiation" },
   { value: "escape", label: "🔓 Escape Game", desc: "Résous des énigmes pour trouver le code secret" },
   { value: "aventure", label: "📖 Aventure", desc: "Livre dont tu es le héros — narration + choix" },
   { value: "mission", label: "🎯 Mission", desc: "Mission multi-phases avec boss final" },
@@ -64,9 +65,46 @@ const GAME_TYPES = [
   { value: "anagram", label: "🔤 Anagramme", desc: "Remets les lettres dans l'ordre" },
 ];
 
-const COMPLEX_TYPES = ["aventure", "mission", "plateau", "cartes", "defi", "construction"];
+const COMPLEX_TYPES = ["quete", "aventure", "mission", "plateau", "cartes", "defi", "construction"];
 
 const JSON_EXAMPLES: Record<string, string> = {
+  quete: `{
+  "title": "Le Laboratoire du Savoir",
+  "theme": "chateau",
+  "intro": "Le professeur a verrouillé son laboratoire. Traverse les salles en résolvant les épreuves pour récupérer les objets et ouvrir chaque porte !",
+  "heroEmoji": "🧭",
+  "rooms": [
+    {
+      "id": "r1",
+      "name": "La Salle des Nombres",
+      "emoji": "🔢",
+      "narrative": "Une porte couverte de chiffres bloque le passage.",
+      "challenges": [
+        {
+          "id": "c1",
+          "competence": "Calcul mental",
+          "question": "Combien font 7 × 8 ?",
+          "choices": ["54", "56", "63"],
+          "correctIndex": 1,
+          "explanation": "7 × 8 = 56. Astuce : 7 × 8 = (7 × 4) × 2 = 28 × 2 = 56.",
+          "remediation": {
+            "hint": "Compte de 8 en 8, sept fois.",
+            "question": "Combien font 7 × 4 ?",
+            "choices": ["28", "32", "24"],
+            "correctIndex": 0,
+            "explanation": "7 × 4 = 28, et le double donne 7 × 8 = 56."
+          },
+          "reward": { "item": "Clé de bronze", "emoji": "🗝️" }
+        }
+      ],
+      "exit": {
+        "lockedText": "La porte demande la clé de bronze.",
+        "unlockText": "La clé de bronze ouvre la porte !"
+      }
+    }
+  ],
+  "ending": { "text": "Tu as traversé tout le laboratoire ! Le professeur est impressionné.", "emoji": "🏆" }
+}`,
   aventure: `{
   "title": "La Forêt Enchantée",
   "theme": "foret",
@@ -216,11 +254,11 @@ function JsonEditor({
   }
 
   const icons: Record<string, string> = {
-    aventure: "📖", mission: "🎯", plateau: "🎲",
+    quete: "🧭", aventure: "📖", mission: "🎯", plateau: "🎲",
     cartes: "🃏", defi: "⚡", construction: "🔧",
   };
   const countKey: Record<string, string> = {
-    aventure: "chapters", mission: "phases", plateau: "spaces",
+    quete: "rooms", aventure: "chapters", mission: "phases", plateau: "spaces",
     cartes: "cards", defi: "challenges", construction: "pieces",
   };
 
@@ -327,7 +365,7 @@ export default function GameForm({ error }: { error?: string }) {
 
   // complex types JSON state
   const [complexJson, setComplexJson] = useState<Record<string, string>>({
-    aventure: "", mission: "", plateau: "", cartes: "", defi: "", construction: "",
+    quete: "", aventure: "", mission: "", plateau: "", cartes: "", defi: "", construction: "",
   });
 
   function setJsonForType(type: string, value: string) {

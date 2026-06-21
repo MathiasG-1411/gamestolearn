@@ -14,6 +14,7 @@ import PlateauGame from "./games/plateau-game";
 import CartesGame from "./games/cartes-game";
 import DefiGame from "./games/defi-game";
 import ConstructionGame from "./games/construction-game";
+import QueteGame from "./games/quete-game";
 
 export default async function PlayPage({
   params,
@@ -89,7 +90,10 @@ export default async function PlayPage({
       {game.type === "construction" && (
         <ConstructionGame game={game} studentId={studentId} />
       )}
-      {(game.type === "image-click" || !["memory", "quiz", "anagram", "escape", "enquete", "aventure", "mission", "plateau", "cartes", "defi", "construction"].includes(game.type)) && (
+      {game.type === "quete" && (
+        <QueteGame game={game} studentId={studentId} />
+      )}
+      {(game.type === "image-click" || !["memory", "quiz", "anagram", "escape", "enquete", "aventure", "mission", "plateau", "cartes", "defi", "construction", "quete"].includes(game.type)) && (
         <GamePlayer game={game} studentId={studentId} />
       )}
     </main>
