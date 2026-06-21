@@ -283,14 +283,26 @@ function JsonEditor({
       </div>
 
       {/* Example toggle */}
-      <button
-        type="button"
-        onClick={() => setShowExample((v) => !v)}
-        className="flex items-center gap-1.5 text-xs text-[#2563EB] font-medium mb-3 hover:underline"
-      >
-        {showExample ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        {showExample ? "Masquer" : "Voir"} le format attendu
-      </button>
+      <div className="flex items-center gap-3 mb-3">
+        <button
+          type="button"
+          onClick={() => setShowExample((v) => !v)}
+          className="flex items-center gap-1.5 text-xs text-[#2563EB] font-medium hover:underline"
+        >
+          {showExample ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          {showExample ? "Masquer" : "Voir"} le format attendu
+        </button>
+        {!value.trim() && (
+          <button
+            type="button"
+            onClick={() => onChange(JSON_EXAMPLES[type] ?? "")}
+            className="text-xs font-semibold px-2.5 py-1 rounded-lg text-white"
+            style={{ background: "#2563EB" }}
+          >
+            Utiliser l&apos;exemple →
+          </button>
+        )}
+      </div>
 
       {showExample && (
         <pre
