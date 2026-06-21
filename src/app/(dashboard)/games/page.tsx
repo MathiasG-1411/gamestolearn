@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Trash2, Brain, Timer, Puzzle, Target, Lock, Search, Play, Gamepad2, BookOpen, Crosshair, Dices, Layers, Zap, Wrench, Compass } from "lucide-react";
+import { Plus, Trash2, Brain, Timer, Puzzle, Target, Lock, Search, Play, Gamepad2, BookOpen, Crosshair, Dices, Layers, Zap, Wrench, Compass, Map } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { deleteGame } from "./actions";
 
@@ -12,6 +12,7 @@ type GameTypeMeta = {
 };
 
 const GAME_TYPE_META: Record<string, GameTypeMeta> = {
+  hub: { icon: Map, label: "Hub interactif", color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
   quete: { icon: Compass, label: "Quête", color: "#9333EA", bg: "#FAF5FF", border: "#E9D5FF" },
   "image-click": { icon: Target, label: "Clique & trouve", color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
   memory: { icon: Brain, label: "Memory", color: "#14B8A6", bg: "#F0FDFA", border: "#99F6E4" },
@@ -42,6 +43,7 @@ function itemCount(config: unknown, type: string): string {
   if (type === "defi") return `${(c?.challenges ?? []).length} défis`;
   if (type === "construction") return `${(c?.pieces ?? []).length} pièces`;
   if (type === "quete") return `${(c?.rooms ?? []).length} salles`;
+  if (type === "hub") return `${(c?.zones ?? []).length} zones`;
   return "";
 }
 

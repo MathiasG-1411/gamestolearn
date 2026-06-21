@@ -50,6 +50,7 @@ const EMPTY_ENQUETE_Q = (): EnqueteQuestion => ({
 
 // ── game types ───────────────────────────────────────────────────────
 const GAME_TYPES = [
+  { value: "hub", label: "🗺️ Hub interactif", desc: "Carte centrale avec zones à explorer — QCM, saisie libre, ordre, classement" },
   { value: "quete", label: "🧭 Quête", desc: "Plusieurs salles, inventaire, explications + remédiation" },
   { value: "escape", label: "🔓 Escape Game", desc: "Résous des énigmes pour trouver le code secret" },
   { value: "aventure", label: "📖 Aventure", desc: "Livre dont tu es le héros — narration + choix" },
@@ -65,9 +66,80 @@ const GAME_TYPES = [
   { value: "anagram", label: "🔤 Anagramme", desc: "Remets les lettres dans l'ordre" },
 ];
 
-const COMPLEX_TYPES = ["quete", "aventure", "mission", "plateau", "cartes", "defi", "construction"];
+const COMPLEX_TYPES = ["hub", "quete", "aventure", "mission", "plateau", "cartes", "defi", "construction"];
 
 const JSON_EXAMPLES: Record<string, string> = {
+  hub: `{
+  "title": "Le Tour du Moyen Âge",
+  "theme": "chateau",
+  "intro": "Explore chaque zone du château et relève les défis pour percer les secrets du Moyen Âge !",
+  "mapEmoji": "🏰",
+  "zones": [
+    {
+      "id": "z1",
+      "label": "La Grande Salle",
+      "emoji": "👑",
+      "description": "Le banquet du seigneur",
+      "challenge": {
+        "type": "qcm",
+        "question": "Qui dirigeait un fief au Moyen Âge ?",
+        "choices": ["Le marchand", "Le seigneur", "Le moine", "Le paysan"],
+        "correctIndex": 1,
+        "explanation": "Le seigneur possédait le fief et accordait sa protection aux paysans qui travaillaient ses terres."
+      }
+    },
+    {
+      "id": "z2",
+      "label": "La Bibliothèque",
+      "emoji": "📜",
+      "description": "Les manuscrits des moines",
+      "challenge": {
+        "type": "texte",
+        "question": "Comment appelait-on les livres écrits à la main par les moines ?",
+        "answer": "manuscrits",
+        "placeholder": "Tape ta réponse…",
+        "explanation": "Les manuscrits (du latin 'manu scriptus', écrit à la main) étaient copiés patiemment par les moines copistes.",
+        "tolerance": true
+      }
+    },
+    {
+      "id": "z3",
+      "label": "L'Écurie",
+      "emoji": "⚔️",
+      "description": "La formation des chevaliers",
+      "challenge": {
+        "type": "ordre",
+        "question": "Remets les étapes de la formation d'un chevalier dans l'ordre !",
+        "items": ["Page (7 ans)", "Écuyer (14 ans)", "Chevalier (21 ans)"],
+        "explanation": "On devenait d'abord page, puis écuyer au service d'un chevalier, avant d'être adoubé chevalier lors d'une cérémonie."
+      }
+    },
+    {
+      "id": "z4",
+      "label": "Le Marché",
+      "emoji": "🏪",
+      "description": "Les métiers de la ville",
+      "challenge": {
+        "type": "tri",
+        "question": "Classe ces personnages selon leur rôle au Moyen Âge.",
+        "categories": ["Clergé", "Noblesse", "Tiers état"],
+        "items": [
+          { "label": "Évêque", "categoryIndex": 0 },
+          { "label": "Moine", "categoryIndex": 0 },
+          { "label": "Chevalier", "categoryIndex": 1 },
+          { "label": "Baron", "categoryIndex": 1 },
+          { "label": "Paysan", "categoryIndex": 2 },
+          { "label": "Artisan", "categoryIndex": 2 }
+        ],
+        "explanation": "La société médiévale était divisée en trois ordres : ceux qui prient (clergé), ceux qui combattent (noblesse) et ceux qui travaillent (tiers état)."
+      }
+    }
+  ],
+  "ending": {
+    "text": "Bravo ! Tu as exploré tout le château et maîtrises les bases de la société médiévale.",
+    "emoji": "🏆"
+  }
+}`,
   quete: `{
   "title": "Le Laboratoire du Savoir",
   "theme": "chateau",
@@ -254,11 +326,11 @@ function JsonEditor({
   }
 
   const icons: Record<string, string> = {
-    quete: "🧭", aventure: "📖", mission: "🎯", plateau: "🎲",
+    hub: "🗺️", quete: "🧭", aventure: "📖", mission: "🎯", plateau: "🎲",
     cartes: "🃏", defi: "⚡", construction: "🔧",
   };
   const countKey: Record<string, string> = {
-    quete: "rooms", aventure: "chapters", mission: "phases", plateau: "spaces",
+    hub: "zones", quete: "rooms", aventure: "chapters", mission: "phases", plateau: "spaces",
     cartes: "cards", defi: "challenges", construction: "pieces",
   };
 
@@ -377,7 +449,7 @@ export default function GameForm({ error }: { error?: string }) {
 
   // complex types JSON state
   const [complexJson, setComplexJson] = useState<Record<string, string>>({
-    quete: "", aventure: "", mission: "", plateau: "", cartes: "", defi: "", construction: "",
+    hub: "", quete: "", aventure: "", mission: "", plateau: "", cartes: "", defi: "", construction: "",
   });
 
   function setJsonForType(type: string, value: string) {

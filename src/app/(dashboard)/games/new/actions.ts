@@ -60,6 +60,9 @@ export async function createGame(formData: FormData) {
   if (gameType === "quete" && (!config.rooms || (config.rooms as unknown[]).length === 0)) {
     redirect("/games/new?error=Au+moins+une+salle+requise");
   }
+  if (gameType === "hub" && (!config.zones || (config.zones as unknown[]).length === 0)) {
+    redirect("/games/new?error=Au+moins+une+zone+requise");
+  }
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("games").insert({

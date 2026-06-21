@@ -18,6 +18,7 @@ const GAME_ICONS: Record<string, string> = {
   defi: "⚡",
   construction: "🔧",
   quete: "🧭",
+  hub: "🗺️",
 };
 
 const GAME_COLORS = [
