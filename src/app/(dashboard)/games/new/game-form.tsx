@@ -83,8 +83,8 @@ const JSON_EXAMPLES: Record<string, string> = {
       "challenge": {
         "type": "qcm",
         "question": "Qui dirigeait un fief au Moyen Âge ?",
-        "choices": ["Le marchand", "Le seigneur", "Le moine", "Le paysan"],
-        "correctIndex": 1,
+        "choices": ["Le moine", "Le paysan", "Le seigneur", "Le marchand"],
+        "correctIndex": 2,
         "explanation": "Le seigneur possédait le fief et accordait sa protection aux paysans qui travaillaient ses terres."
       }
     },
@@ -156,14 +156,14 @@ const JSON_EXAMPLES: Record<string, string> = {
           "id": "c1",
           "competence": "Calcul mental",
           "question": "Combien font 7 × 8 ?",
-          "choices": ["54", "56", "63"],
-          "correctIndex": 1,
+          "choices": ["63", "54", "56"],
+          "correctIndex": 2,
           "explanation": "7 × 8 = 56. Astuce : 7 × 8 = (7 × 4) × 2 = 28 × 2 = 56.",
           "remediation": {
             "hint": "Compte de 8 en 8, sept fois.",
             "question": "Combien font 7 × 4 ?",
-            "choices": ["28", "32", "24"],
-            "correctIndex": 0,
+            "choices": ["32", "24", "28"],
+            "correctIndex": 2,
             "explanation": "7 × 4 = 28, et le double donne 7 × 8 = 56."
           },
           "reward": { "item": "Clé de bronze", "emoji": "🗝️" }
@@ -190,8 +190,8 @@ const JSON_EXAMPLES: Record<string, string> = {
       "narrative": "Un gnome te barre la route.",
       "challenge": {
         "question": "Combien font 6 × 7 ?",
-        "choices": ["40", "42", "48"],
-        "correctIndex": 1,
+        "choices": ["40", "48", "42"],
+        "correctIndex": 2,
         "correctFeedback": "Le gnome s'écarte !",
         "wrongFeedback": "Essaie encore…"
       },
@@ -212,8 +212,8 @@ const JSON_EXAMPLES: Record<string, string> = {
       "questions": [
         {
           "question": "Quelle planète est la plus proche du Soleil ?",
-          "choices": ["Vénus", "Mercure", "Mars"],
-          "correctIndex": 1,
+          "choices": ["Vénus", "Mars", "Mercure"],
+          "correctIndex": 2,
           "feedback": "Mercure est bien la plus proche !"
         }
       ]
@@ -236,8 +236,8 @@ const JSON_EXAMPLES: Record<string, string> = {
       "position": 1,
       "type": "question",
       "question": "Combien font 8 + 5 ?",
-      "choices": ["12", "13", "14"],
-      "correctIndex": 1,
+      "choices": ["14", "12", "13"],
+      "correctIndex": 2,
       "correctFeedback": "Parfait !",
       "wrongFeedback": "Compte bien…"
     },
@@ -263,8 +263,8 @@ const JSON_EXAMPLES: Record<string, string> = {
       "emoji": "🔥",
       "type": "attack",
       "question": "Combien font 7 × 8 ?",
-      "choices": ["54", "56", "58"],
-      "correctIndex": 1,
+      "choices": ["56", "54", "58"],
+      "correctIndex": 0,
       "power": 25,
       "description": "Inflige des dégâts de feu",
       "wrongPenalty": 10
@@ -279,8 +279,8 @@ const JSON_EXAMPLES: Record<string, string> = {
   "challenges": [
     {
       "question": "Quelle est la capitale de la France ?",
-      "choices": ["Londres", "Paris", "Berlin", "Madrid"],
-      "correctIndex": 1,
+      "choices": ["Madrid", "Berlin", "Londres", "Paris"],
+      "correctIndex": 3,
       "points": 10,
       "timeBonusSeconds": 5
     }
@@ -297,8 +297,8 @@ const JSON_EXAMPLES: Record<string, string> = {
       "name": "Moteur",
       "emoji": "🔩",
       "question": "Quelle planète est la plus grande ?",
-      "choices": ["Terre", "Jupiter", "Saturne"],
-      "correctIndex": 1,
+      "choices": ["Jupiter", "Saturne", "Terre"],
+      "correctIndex": 0,
       "hint": "C'est la plus grande planète du système solaire.",
       "unlockText": "Le moteur est assemblé !"
     }
