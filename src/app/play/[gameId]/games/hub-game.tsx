@@ -70,7 +70,7 @@ const THEMES = {
 // ── Helpers ──────────────────────────────────────────────────────────
 
 const normalize = (s: string) =>
-  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "").trim();
 
 // ── Challenge renderers ───────────────────────────────────────────────
 
@@ -359,6 +359,7 @@ export default function HubGame({
   const [lastCorrect, setLastCorrect] = useState(false);
   const [animKey, setAnimKey] = useState(0);
   const [scoreSaved, setScoreSaved] = useState(false);
+  const [errors, setErrors] = useState<{ label: string; question: string; correctAnswer: string }[]>([]);
 
   const activeZone = config.zones.find((z) => z.id === activeZoneId) ?? null;
   const total = config.zones.length;
@@ -368,8 +369,21 @@ export default function HubGame({
     setPhase(p);
   };
 
+  const getCorrectDisplay = (challenge: ZoneChallenge): string => {
+    if (challenge.type === "qcm") return challenge.choices[challenge.correctIndex];
+    if (challenge.type === "texte") return challenge.answer;
+    if (challenge.type === "ordre") return challenge.items.join(" → ");
+    return challenge.items.map((it) => `${it.label} → ${challenge.categories[it.categoryIndex]}`).join(" | ");
+  };
+
   const handleResult = (correct: boolean, firstTry: boolean) => {
     setLastCorrect(correct);
+    if (!correct && activeZone) {
+      setErrors((prev) => [
+        ...prev,
+        { label: activeZone.label, question: activeZone.challenge.question, correctAnswer: getCorrectDisplay(activeZone.challenge) },
+      ]);
+    }
     if (correct) {
       if (firstTry) setFirstTryCount((n) => n + 1);
       const newCompleted = new Set(completed);
@@ -521,6 +535,22 @@ export default function HubGame({
                 <div className="text-xs text-white/50 mt-0.5">Étoiles</div>
               </div>
             </div>
+            {errors.length > 0 && (
+              <div className="rounded-2xl p-4 mb-5 text-left" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
+                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: `${theme.accent}99` }}>
+                  📝 À revoir ({errors.length})
+                </p>
+                <div className="space-y-3">
+                  {errors.map((err, i) => (
+                    <div key={i} className="text-left pt-2.5 first:pt-0" style={{ borderTop: i > 0 ? `1px solid ${theme.border}` : "none" }}>
+                      <p className="text-[11px] font-bold mb-0.5" style={{ color: theme.accent }}>{err.label}</p>
+                      <p className="text-xs mb-1 leading-snug" style={{ color: `${theme.text}88` }}>{err.question}</p>
+                      <p className="text-xs font-semibold" style={{ color: theme.text }}>✓ {err.correctAnswer}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <a href="/student/home" className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition hover:opacity-90" style={{ background: theme.accent, color: "#000" }}>
               Retour aux jeux
             </a>

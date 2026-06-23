@@ -80,6 +80,7 @@ export default function QueteGame({
   const [selected, setSelected] = useState<number | null>(null);
   const [scoreSaved, setScoreSaved] = useState(false);
   const [animKey, setAnimKey] = useState(0);
+  const [errors, setErrors] = useState<{ room: string; question: string; correctAnswer: string }[]>([]);
 
   const totalChallenges = config.rooms.reduce((n, r) => n + r.challenges.length, 0);
 
@@ -120,6 +121,16 @@ export default function QueteGame({
     setSelected(i);
     const correct = i === activeQuestion.correctIndex;
     if (correct && !phase.remed) setFirstTryCorrect((n) => n + 1);
+    if (!correct && !phase.remed) {
+      const chal = getChal(phase.room, phase.chal);
+      const room = getRoom(phase.room);
+      if (chal) {
+        setErrors((prev) => [
+          ...prev,
+          { room: room.name, question: chal.question, correctAnswer: chal.choices[chal.correctIndex] },
+        ]);
+      }
+    }
     setTimeout(() => {
       goTo({ type: "feedback", room: phase.room, chal: phase.chal, remed: phase.remed, correct });
     }, 650);
@@ -361,6 +372,22 @@ export default function QueteGame({
                 <div className="text-xs text-white/50 mt-0.5">Étoiles</div>
               </div>
             </div>
+            {errors.length > 0 && (
+              <div className="rounded-2xl p-4 mb-5 text-left" style={{ background: theme.card, border: `1px solid ${theme.border}` }}>
+                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: `${theme.accent}99` }}>
+                  📝 À revoir ({errors.length})
+                </p>
+                <div className="space-y-3">
+                  {errors.map((err, i) => (
+                    <div key={i} className="text-left pt-2.5 first:pt-0" style={{ borderTop: i > 0 ? `1px solid ${theme.border}` : "none" }}>
+                      <p className="text-[11px] font-bold mb-0.5" style={{ color: theme.accent }}>{err.room}</p>
+                      <p className="text-xs mb-1 leading-snug" style={{ color: `${theme.text}88` }}>{err.question}</p>
+                      <p className="text-xs font-semibold" style={{ color: theme.text }}>✓ {err.correctAnswer}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <a href="/student/home" className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90" style={{ background: theme.accent, color: "#000" }}>
               Retour aux jeux
             </a>

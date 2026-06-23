@@ -83,6 +83,290 @@ const EXAMPLES = [
       },
     },
   },
+  // ── P4 · Période 1 — Numération ─────────────────────────────────────
+  {
+    type: "hub",
+    label: "Hub — Numération P4",
+    icon: "🚀",
+    description: "P4 · Période 1 — Numération jusqu'à 100 000",
+    color: "#0891B2",
+    json: {
+      title: "Mission 100 000",
+      theme: "espace",
+      intro: "Centre de contrôle à toi ! Explore les 5 stations de la navette et prouve que tu maîtrises la numération jusqu'à 100 000.",
+      mapEmoji: "🚀",
+      zones: [
+        {
+          id: "z1",
+          label: "Poste de lecture",
+          emoji: "🌟",
+          description: "Lire les grands nombres",
+          challenge: {
+            type: "qcm",
+            question: "Quel nombre correspond à « soixante-quatorze mille deux cent soixante » ?",
+            choices: ["74 206", "74 620", "70 426", "74 260"],
+            correctIndex: 3,
+            explanation: "Soixante-quatorze mille = 74 000, deux cent soixante = 260 → 74 260. Attention à ne pas confondre les rangs !",
+          },
+        },
+        {
+          id: "z2",
+          label: "Salle d'encodage",
+          emoji: "✍️",
+          description: "Écrire les grands nombres en chiffres",
+          challenge: {
+            type: "texte",
+            question: "Écris en chiffres (sans espace) : « trente et un mille cinq cent huit »",
+            answer: "31508",
+            placeholder: "ex : 12345",
+            tolerance: true,
+            explanation: "Trente et un mille (31 000) + cinq cent huit (508) = 31 508. Colle les chiffres : 31508",
+          },
+        },
+        {
+          id: "z3",
+          label: "Radar d'ordre",
+          emoji: "📡",
+          description: "Ordonner les grands nombres",
+          challenge: {
+            type: "ordre",
+            question: "Range ces nombres du plus petit au plus grand.",
+            items: ["9 999", "23 045", "23 450", "23 504", "100 000"],
+            explanation: "9 999 < 23 045 < 23 450 < 23 504 < 100 000. Un nombre à 5 chiffres est toujours plus grand qu'un nombre à 4 chiffres.",
+          },
+        },
+        {
+          id: "z4",
+          label: "Station des rangs",
+          emoji: "🔢",
+          description: "Identifier les rangs",
+          challenge: {
+            type: "tri",
+            question: "Place chaque chiffre du nombre 85 632 dans son rang.",
+            categories: ["Dizaines de milliers", "Milliers", "Centaines", "Dizaines", "Unités"],
+            items: [
+              { label: "8", categoryIndex: 0 },
+              { label: "5", categoryIndex: 1 },
+              { label: "6", categoryIndex: 2 },
+              { label: "3", categoryIndex: 3 },
+              { label: "2", categoryIndex: 4 },
+            ],
+            explanation: "85 632 : 8 = dizaines de milliers, 5 = milliers, 6 = centaines, 3 = dizaines, 2 = unités.",
+          },
+        },
+        {
+          id: "z5",
+          label: "Centre de décomposition",
+          emoji: "🧩",
+          description: "Décomposer un nombre",
+          challenge: {
+            type: "qcm",
+            question: "Quel nombre est égal à 6×10 000 + 3×1 000 + 7×100 + 4×10 + 9 ?",
+            choices: ["63 479", "60 479", "63 409", "63 749"],
+            correctIndex: 3,
+            explanation: "60 000 + 3 000 + 700 + 40 + 9 = 63 749. Chaque terme correspond à un rang précis du nombre.",
+          },
+        },
+      ],
+      ending: {
+        text: "Bravo pilote ! Tu maîtrises la numération jusqu'à 100 000. Note tes erreurs sur ta feuille !",
+        emoji: "🚀",
+      },
+    },
+  },
+  // ── P4 · Période 1 — Additions & Soustractions ───────────────────────
+  {
+    type: "quete",
+    label: "Quête — Additions P4",
+    icon: "🧮",
+    description: "P4 · Période 1 — Additions et soustractions à retenue",
+    color: "#9333EA",
+    json: {
+      title: "L'Atelier du Maître Calcul",
+      theme: "chateau",
+      heroEmoji: "🧮",
+      intro: "Le Maître Calcul t'attend dans son atelier secret. Pour franchir chaque porte, tu devras maîtriser les additions et soustractions à grand nombre. En route !",
+      rooms: [
+        {
+          id: "r1",
+          name: "L'Antichambre",
+          emoji: "🚪",
+          narrative: "Le Maître te tend les premières feuilles : additions et soustractions sans retenue. Concentre-toi bien !",
+          challenges: [
+            {
+              id: "r1c1",
+              competence: "Addition sans retenue",
+              question: "Calcule : 3 425 + 2 341 = ?",
+              choices: ["5 856", "5 776", "5 766", "5 667"],
+              correctIndex: 2,
+              explanation: "3 425 + 2 341 : 5+1=6, 2+4=6, 4+3=7, 3+2=5 → 5 766",
+              remediation: {
+                hint: "Additionne colonne par colonne de droite à gauche : unités, dizaines, centaines, milliers.",
+                question: "Calcule : 2 314 + 1 253 = ?",
+                choices: ["3 567", "3 557", "3 467", "3 677"],
+                correctIndex: 0,
+                explanation: "2 314 + 1 253 : 4+3=7, 1+5=6, 3+2=5, 2+1=3 → 3 567",
+              },
+              reward: { item: "Feuille de calcul", emoji: "📄" },
+            },
+            {
+              id: "r1c2",
+              competence: "Soustraction sans retenue",
+              question: "Calcule : 6 897 − 3 452 = ?",
+              choices: ["3 345", "3 445", "3 455", "3 545"],
+              correctIndex: 1,
+              explanation: "6 897 − 3 452 : 7−2=5, 9−5=4, 8−4=4, 6−3=3 → 3 445",
+              remediation: {
+                hint: "Soustrais colonne par colonne de droite à gauche.",
+                question: "Calcule : 4 786 − 2 341 = ?",
+                choices: ["2 445", "2 345", "2 435", "2 545"],
+                correctIndex: 0,
+                explanation: "4 786 − 2 341 : 6−1=5, 8−4=4, 7−3=4, 4−2=2 → 2 445",
+              },
+              reward: { item: "Règle de calcul", emoji: "📏" },
+            },
+          ],
+          exit: {
+            lockedText: "La porte résiste… résous les calculs pour l'ouvrir.",
+            unlockText: "La porte s'ouvre ! Tu passes à la forge des retenues.",
+          },
+        },
+        {
+          id: "r2",
+          name: "La Forge des Retenues",
+          emoji: "⚒️",
+          narrative: "Ici les calculs ont des retenues ! Le chiffre retenu passe à la colonne suivante. Reste attentif !",
+          challenges: [
+            {
+              id: "r2c1",
+              competence: "Addition avec retenue",
+              question: "Calcule : 4 537 + 2 286 = ?",
+              choices: ["6 813", "6 923", "6 823", "6 723"],
+              correctIndex: 2,
+              explanation: "4 537 + 2 286 : 7+6=13 (écris 3, retiens 1), 3+8+1=12 (écris 2, retiens 1), 5+2+1=8, 4+2=6 → 6 823",
+              remediation: {
+                hint: "Quand la somme dépasse 9, écris le chiffre des unités et retiens 1 pour la colonne suivante.",
+                question: "Calcule : 3 256 + 1 847 = ?",
+                choices: ["5 013", "5 103", "5 203", "5 113"],
+                correctIndex: 1,
+                explanation: "3 256 + 1 847 : 6+7=13, 5+4+1=10, 2+8+1=11, 3+1+1=5 → 5 103",
+              },
+              reward: { item: "Marteau de forge", emoji: "🔨" },
+            },
+            {
+              id: "r2c2",
+              competence: "Soustraction avec emprunt",
+              question: "Calcule : 7 342 − 2 185 = ?",
+              choices: ["5 267", "5 157", "5 257", "5 057"],
+              correctIndex: 1,
+              explanation: "7 342 − 2 185 : 2−5 impossible → emprunte ; 12−5=7 ; 4−1−8 → emprunte ; 13−8=5 → 5 157",
+              remediation: {
+                hint: "Quand le chiffre du haut est plus petit, emprunte 10 à la colonne de gauche.",
+                question: "Calcule : 5 624 − 1 358 = ?",
+                choices: ["4 166", "4 366", "4 266", "4 256"],
+                correctIndex: 2,
+                explanation: "5 624 − 1 358 : 4−8 → 14−8=6 ; 2−1−5 → 11−5=6 ; 6−1−3=2 ; 5−1=4 → 4 266",
+              },
+              reward: { item: "Enclume", emoji: "⚒️" },
+            },
+          ],
+          exit: {
+            lockedText: "Les retenues te bloquent encore…",
+            unlockText: "La forge est maîtrisée ! Tu avances vers la chambre du Maître.",
+          },
+        },
+        {
+          id: "r3",
+          name: "La Chambre du Maître",
+          emoji: "🎓",
+          narrative: "L'épreuve finale ! Deux problèmes tirés de la vie réelle. Lis attentivement avant de calculer !",
+          challenges: [
+            {
+              id: "r3c1",
+              competence: "Problème — addition",
+              question: "Dans une bibliothèque : 2 457 livres au rez-de-chaussée et 1 386 livres à l'étage. Combien de livres en tout ?",
+              choices: ["3 743", "3 843", "3 853", "3 943"],
+              correctIndex: 1,
+              explanation: "2 457 + 1 386 : 7+6=13, 5+8+1=14, 4+3+1=8, 2+1=3 → 3 843 livres",
+              remediation: {
+                hint: "Le mot « en tout » indique une addition. Additionne les deux quantités.",
+                question: "Un commerçant a 1 234 pommes et en reçoit 765 de plus. Combien en a-t-il ?",
+                choices: ["1 899", "1 979", "1 999", "2 000"],
+                correctIndex: 2,
+                explanation: "1 234 + 765 : 4+5=9, 3+6=9, 2+7=9, 1+0=1 → 1 999 pommes",
+              },
+              reward: { item: "Parchemin du Maître", emoji: "📜" },
+            },
+            {
+              id: "r3c2",
+              competence: "Problème — soustraction",
+              question: "Une ville comptait 5 204 habitants. Après des déménagements, il en reste 2 837. Combien sont partis ?",
+              choices: ["2 367", "2 467", "2 267", "3 367"],
+              correctIndex: 0,
+              explanation: "5 204 − 2 837 = 2 367. Vérifie : 2 367 + 2 837 = 5 204 ✓",
+              remediation: {
+                hint: "Le mot « partis » indique une soustraction. Soustrais ce qui reste du total.",
+                question: "Un magasin avait 3 042 articles et en a vendu 1 568. Combien en reste-t-il ?",
+                choices: ["1 374", "1 474", "1 574", "1 404"],
+                correctIndex: 1,
+                explanation: "3 042 − 1 568 = 1 474. Vérifie : 1 474 + 1 568 = 3 042 ✓",
+              },
+              reward: { item: "Médaille d'or", emoji: "🥇" },
+            },
+          ],
+          exit: {
+            lockedText: "La dernière épreuve t'attend…",
+            unlockText: "Le Maître Calcul est impressionné ! Tu mérites la médaille !",
+          },
+        },
+      ],
+      ending: {
+        text: "Félicitations ! Tu maîtrises les additions et soustractions à grand nombre. Note tes erreurs sur ta feuille pour t'entraîner.",
+        emoji: "🎓",
+      },
+    },
+  },
+  // ── P4 · Période 1 — Tables de multiplication ────────────────────────
+  {
+    type: "defi",
+    label: "Défi — Tables P4",
+    icon: "⚡",
+    description: "P4 · Période 1 — Tables ×2 à ×10 (25 questions, formats variés)",
+    color: "#EA580C",
+    json: {
+      title: "Tables ×2 à ×10",
+      emoji: "⚡",
+      narrative: "Le défi des tables commence ! Réponds le plus vite possible. Chaque bonne réponse rapide te rapporte des points bonus. Les formats changent : multiplication, division, facteur manquant, problème !",
+      totalTimeSeconds: 150,
+      challenges: [
+        { question: "7 × 8 = ?", choices: ["56", "48", "54", "63"], correctIndex: 0, points: 10 },
+        { question: "9 × 6 = ?", choices: ["48", "54", "63", "72"], correctIndex: 1, points: 10 },
+        { question: "6 × 7 = ?", choices: ["40", "48", "42", "35"], correctIndex: 2, points: 10 },
+        { question: "8 × 3 = ?", choices: ["21", "24", "27", "32"], correctIndex: 1, points: 10 },
+        { question: "5 × 9 = ?", choices: ["40", "45", "50", "54"], correctIndex: 1, points: 10 },
+        { question: "4 × 8 = ?", choices: ["32", "24", "28", "36"], correctIndex: 0, points: 10 },
+        { question: "7 × ? = 63", choices: ["7", "8", "9", "10"], correctIndex: 2, points: 10 },
+        { question: "? × 6 = 48", choices: ["6", "7", "9", "8"], correctIndex: 3, points: 10 },
+        { question: "56 ÷ 7 = ?", choices: ["6", "8", "7", "9"], correctIndex: 1, points: 10 },
+        { question: "81 ÷ 9 = ?", choices: ["9", "7", "8", "10"], correctIndex: 0, points: 10, timeBonusSeconds: 5 },
+        { question: "3 × 9 = ?", choices: ["21", "27", "24", "30"], correctIndex: 1, points: 10 },
+        { question: "6 × 8 = ?", choices: ["42", "54", "48", "46"], correctIndex: 2, points: 10 },
+        { question: "9 × 4 = ?", choices: ["27", "32", "40", "36"], correctIndex: 3, points: 10 },
+        { question: "8 × 5 = ?", choices: ["35", "40", "45", "50"], correctIndex: 1, points: 10 },
+        { question: "? × 7 = 49", choices: ["5", "6", "7", "8"], correctIndex: 2, points: 10 },
+        { question: "72 ÷ 8 = ?", choices: ["9", "7", "8", "10"], correctIndex: 0, points: 10, timeBonusSeconds: 5 },
+        { question: "9 × ? = 45", choices: ["4", "5", "6", "7"], correctIndex: 1, points: 10 },
+        { question: "8 × 7 = ?", choices: ["48", "54", "56", "63"], correctIndex: 2, points: 15 },
+        { question: "6 boîtes de 9 crayons, c'est combien ?", choices: ["54", "48", "57", "60"], correctIndex: 0, points: 10 },
+        { question: "5 × 6 = ?", choices: ["25", "28", "35", "30"], correctIndex: 3, points: 10 },
+        { question: "42 ÷ 6 = ?", choices: ["5", "6", "8", "7"], correctIndex: 3, points: 10 },
+        { question: "9 × 9 = ?", choices: ["81", "72", "80", "90"], correctIndex: 0, points: 15, timeBonusSeconds: 8 },
+        { question: "? × 8 = 64", choices: ["6", "7", "8", "9"], correctIndex: 2, points: 10 },
+        { question: "4 rangées de 7 élèves, c'est combien ?", choices: ["21", "24", "35", "28"], correctIndex: 3, points: 10 },
+        { question: "7 × 6 + 7 × 3 = ?", choices: ["56", "60", "70", "63"], correctIndex: 3, points: 20, timeBonusSeconds: 10 },
+      ],
+    },
+  },
   {
     type: "aventure",
     label: "Aventure",
@@ -540,9 +824,9 @@ const EXAMPLES = [
 export default function ExemplesPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
-  const handleCopy = async (type: string, json: object) => {
+  const handleCopy = async (label: string, json: object) => {
     await navigator.clipboard.writeText(JSON.stringify(json, null, 2));
-    setCopied(type);
+    setCopied(label);
     setTimeout(() => setCopied(null), 2000);
   };
 
@@ -559,10 +843,10 @@ export default function ExemplesPage() {
 
       <div className="flex flex-col gap-6">
         {EXAMPLES.map((ex) => {
-          const isCopied = copied === ex.type;
+          const isCopied = copied === ex.label;
           return (
             <div
-              key={ex.type}
+              key={ex.label}
               className="bg-white rounded-[20px] overflow-hidden"
               style={{
                 boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
@@ -593,7 +877,7 @@ export default function ExemplesPage() {
                     Créer ce jeu →
                   </Link>
                   <button
-                    onClick={() => handleCopy(ex.type, ex.json)}
+                    onClick={() => handleCopy(ex.label, ex.json)}
                     className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl text-white transition-all"
                     style={{ background: isCopied ? "#10B981" : ex.color }}
                   >

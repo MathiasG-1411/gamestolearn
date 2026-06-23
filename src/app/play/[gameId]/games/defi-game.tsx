@@ -43,6 +43,7 @@ export default function DefiGame({
   const [correctCount, setCorrectCount] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [scoreSaved, setScoreSaved] = useState(false);
+  const [errors, setErrors] = useState<{ question: string; correctAnswer: string }[]>([]);
   const [key, setKey] = useState(0);
   const phaseRef = useRef(phase);
 
@@ -105,6 +106,10 @@ export default function DefiGame({
         goTo({ type: "feedback", idx, correct: true, pointsEarned: pts });
       }, 600);
     } else {
+      setErrors((prev) => [
+        ...prev,
+        { question: challenge.question, correctAnswer: challenge.choices[challenge.correctIndex] },
+      ]);
       setTimeout(() => {
         setSelectedChoice(null);
         goTo({ type: "feedback", idx, correct: false, pointsEarned: 0 });
@@ -364,6 +369,24 @@ export default function DefiGame({
                 <div className="text-xs text-white/50 mt-0.5">Étoiles</div>
               </div>
             </div>
+            {errors.length > 0 && (
+              <div
+                className="rounded-2xl p-4 mb-5 text-left"
+                style={{ background: "rgba(30,5,5,0.85)", border: "1px solid rgba(239,68,68,0.2)" }}
+              >
+                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "rgba(252,165,165,0.6)" }}>
+                  📝 À revoir ({errors.length})
+                </p>
+                <div className="space-y-3">
+                  {errors.map((err, i) => (
+                    <div key={i} className="text-left pt-2.5 first:pt-0" style={{ borderTop: i > 0 ? "1px solid rgba(239,68,68,0.15)" : "none" }}>
+                      <p className="text-xs mb-1 leading-snug" style={{ color: "rgba(252,165,165,0.6)" }}>{err.question}</p>
+                      <p className="text-xs font-semibold" style={{ color: "#fca5a5" }}>✓ {err.correctAnswer}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <a
               href="/student/home"
               className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90"
