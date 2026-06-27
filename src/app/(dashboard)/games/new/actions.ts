@@ -54,6 +54,9 @@ export async function createGame(formData: FormData) {
   if (gameType === "defi" && (!config.challenges || (config.challenges as unknown[]).length === 0)) {
     redirect("/games/new?error=Au+moins+un+d%C3%A9fi+requis");
   }
+  if (gameType === "ceintures" && (!config.belts || (config.belts as unknown[]).length === 0)) {
+    redirect("/games/new?error=Au+moins+une+ceinture+requise");
+  }
   if (gameType === "construction" && (!config.pieces || (config.pieces as unknown[]).length === 0)) {
     redirect("/games/new?error=Au+moins+une+pi%C3%A8ce+requise");
   }

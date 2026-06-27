@@ -16,6 +16,7 @@ import DefiGame from "./games/defi-game";
 import ConstructionGame from "./games/construction-game";
 import QueteGame from "./games/quete-game";
 import HubGame from "./games/hub-game";
+import CeinturesGame from "./games/ceintures-game";
 
 export default async function PlayPage({
   params,
@@ -97,7 +98,10 @@ export default async function PlayPage({
       {game.type === "hub" && (
         <HubGame game={game} studentId={studentId} />
       )}
-      {(game.type === "image-click" || !["memory", "quiz", "anagram", "escape", "enquete", "aventure", "mission", "plateau", "cartes", "defi", "construction", "quete", "hub"].includes(game.type)) && (
+      {game.type === "ceintures" && (
+        <CeinturesGame game={game} studentId={studentId} />
+      )}
+      {(game.type === "image-click" || !["memory", "quiz", "anagram", "escape", "enquete", "aventure", "mission", "plateau", "cartes", "defi", "construction", "quete", "hub", "ceintures"].includes(game.type)) && (
         <GamePlayer game={game} studentId={studentId} />
       )}
     </main>

@@ -58,6 +58,7 @@ const GAME_TYPES = [
   { value: "plateau", label: "🎲 Jeu de plateau", desc: "Avance sur le plateau en répondant correctement" },
   { value: "cartes", label: "🃏 Jeu de cartes", desc: "Duel RPG — active tes cartes en répondant" },
   { value: "defi", label: "⚡ Défi chronométré", desc: "Course contre la montre — réponds vite !" },
+  { value: "ceintures", label: "🥋 Ceintures de compétences", desc: "Progresse de la ceinture blanche à la noire — calculs par paliers" },
   { value: "construction", label: "🔧 Construction", desc: "Débloque des pièces pour construire quelque chose" },
   { value: "enquete", label: "🔍 Enquête", desc: "Collecte des indices pour résoudre le mystère" },
   { value: "image-click", label: "🖼️ Clique sur la bonne image", desc: "4 choix avec emoji, un seul correct" },
@@ -66,7 +67,7 @@ const GAME_TYPES = [
   { value: "anagram", label: "🔤 Anagramme", desc: "Remets les lettres dans l'ordre" },
 ];
 
-const COMPLEX_TYPES = ["hub", "quete", "aventure", "mission", "plateau", "cartes", "defi", "construction"];
+const COMPLEX_TYPES = ["hub", "quete", "aventure", "mission", "plateau", "cartes", "defi", "ceintures", "construction"];
 
 const JSON_EXAMPLES: Record<string, string> = {
   hub: `{
@@ -286,6 +287,34 @@ const JSON_EXAMPLES: Record<string, string> = {
     }
   ]
 }`,
+  ceintures: `{
+  "title": "Ceintures des Tables",
+  "discipline": "Tables de multiplication et division",
+  "intro": "Gravis les ceintures, de la blanche à la noire !",
+  "passThreshold": 0.8,
+  "belts": [
+    {
+      "id": "blanche",
+      "name": "Ceinture Blanche",
+      "color": "#FFFFFF",
+      "textColor": "#1F2937",
+      "description": "Tables de 2 et 5",
+      "questions": [
+        { "question": "2 × 3 = ?", "choices": ["5", "6", "8", "4"], "correctIndex": 1, "explanation": "2 × 3 = 6." }
+      ]
+    },
+    {
+      "id": "jaune",
+      "name": "Ceinture Jaune",
+      "color": "#FACC15",
+      "description": "Tables de 3 et 4",
+      "timePerQuestion": 15,
+      "questions": [
+        { "question": "4 × 6 = ?", "choices": ["24", "28", "20", "32"], "correctIndex": 0, "explanation": "4 × 6 = 24." }
+      ]
+    }
+  ]
+}`,
   construction: `{
   "title": "Construis ta Fusée",
   "narrative": "Réponds aux questions pour assembler ta fusée !",
@@ -327,11 +356,11 @@ function JsonEditor({
 
   const icons: Record<string, string> = {
     hub: "🗺️", quete: "🧭", aventure: "📖", mission: "🎯", plateau: "🎲",
-    cartes: "🃏", defi: "⚡", construction: "🔧",
+    cartes: "🃏", defi: "⚡", ceintures: "🥋", construction: "🔧",
   };
   const countKey: Record<string, string> = {
     hub: "zones", quete: "rooms", aventure: "chapters", mission: "phases", plateau: "spaces",
-    cartes: "cards", defi: "challenges", construction: "pieces",
+    cartes: "cards", defi: "challenges", ceintures: "belts", construction: "pieces",
   };
 
   const countItems =
@@ -449,7 +478,7 @@ export default function GameForm({ error }: { error?: string }) {
 
   // complex types JSON state
   const [complexJson, setComplexJson] = useState<Record<string, string>>({
-    hub: "", quete: "", aventure: "", mission: "", plateau: "", cartes: "", defi: "", construction: "",
+    hub: "", quete: "", aventure: "", mission: "", plateau: "", cartes: "", defi: "", ceintures: "", construction: "",
   });
 
   function setJsonForType(type: string, value: string) {

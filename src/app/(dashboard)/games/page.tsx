@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Trash2, Brain, Timer, Puzzle, Target, Lock, Search, Play, Gamepad2, BookOpen, Crosshair, Dices, Layers, Zap, Wrench, Compass, Map } from "lucide-react";
+import { Plus, Trash2, Brain, Timer, Puzzle, Target, Lock, Search, Play, Gamepad2, BookOpen, Crosshair, Dices, Layers, Zap, Wrench, Compass, Map, Award } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { deleteGame } from "./actions";
 
@@ -25,6 +25,7 @@ const GAME_TYPE_META: Record<string, GameTypeMeta> = {
   plateau: { icon: Dices, label: "Plateau", color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
   cartes: { icon: Layers, label: "Cartes RPG", color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
   defi: { icon: Zap, label: "Défi chrono", color: "#EA580C", bg: "#FFF7ED", border: "#FED7AA" },
+  ceintures: { icon: Award, label: "Ceintures", color: "#3B82F6", bg: "#EFF6FF", border: "#BFDBFE" },
   construction: { icon: Wrench, label: "Construction", color: "#0369A1", bg: "#EFF6FF", border: "#BFDBFE" },
 };
 
@@ -41,6 +42,7 @@ function itemCount(config: unknown, type: string): string {
   if (type === "plateau") return `${(c?.spaces ?? []).length} cases`;
   if (type === "cartes") return `${(c?.cards ?? []).length} cartes`;
   if (type === "defi") return `${(c?.challenges ?? []).length} défis`;
+  if (type === "ceintures") return `${(c?.belts ?? []).length} ceintures`;
   if (type === "construction") return `${(c?.pieces ?? []).length} pièces`;
   if (type === "quete") return `${(c?.rooms ?? []).length} salles`;
   if (type === "hub") return `${(c?.zones ?? []).length} zones`;
