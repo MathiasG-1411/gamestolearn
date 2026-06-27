@@ -298,7 +298,7 @@ const JSON_EXAMPLES: Record<string, string> = {
       "name": "Ceinture Blanche",
       "color": "#FFFFFF",
       "textColor": "#1F2937",
-      "description": "Tables de 2 et 5",
+      "description": "Tables de 2 et 5 (QCM)",
       "questions": [
         { "question": "2 × 3 = ?", "choices": ["5", "6", "8", "4"], "correctIndex": 1, "explanation": "2 × 3 = 6." }
       ]
@@ -307,10 +307,10 @@ const JSON_EXAMPLES: Record<string, string> = {
       "id": "jaune",
       "name": "Ceinture Jaune",
       "color": "#FACC15",
-      "description": "Tables de 3 et 4",
+      "description": "Tables de 3 et 4 (réponse à taper + chrono)",
       "timePerQuestion": 15,
       "questions": [
-        { "question": "4 × 6 = ?", "choices": ["24", "28", "20", "32"], "correctIndex": 0, "explanation": "4 × 6 = 24." }
+        { "question": "4 × 6 = ?", "answer": "24", "explanation": "4 × 6 = 24." }
       ]
     }
   ]

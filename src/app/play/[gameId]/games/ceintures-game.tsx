@@ -8,10 +8,31 @@ import { saveScore } from "../actions";
 
 type CeintureQuestion = {
   question: string;
-  choices: string[];
-  correctIndex: number;
+  // QCM mode (choix multiples)
+  choices?: string[];
+  correctIndex?: number;
+  // Saisie libre : l'élève tape la réponse lui-même
+  answer?: string;
+  placeholder?: string;
   explanation?: string;
 };
+
+// Réponse attendue à afficher, quel que soit le mode
+function correctDisplay(q: CeintureQuestion): string {
+  if (q.choices && q.correctIndex !== undefined) return q.choices[q.correctIndex];
+  return q.answer ?? "";
+}
+
+// Une question est en saisie libre si elle a un "answer" et pas de "choices"
+function isTyped(q: CeintureQuestion): boolean {
+  return !!q.answer && !(q.choices && q.choices.length > 0);
+}
+
+// Comparaison tolérante (espaces, casse) pour la saisie libre
+function answersMatch(given: string, expected: string): boolean {
+  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
+  return norm(given) === norm(expected);
+}
 
 type Belt = {
   id: string;
@@ -99,6 +120,8 @@ export default function CeinturesGame({
   const [earned, setEarned] = useState<Set<string>>(new Set());
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
+  const [typedValue, setTypedValue] = useState("");
+  const [typedLocked, setTypedLocked] = useState<boolean | null>(null); // null = pas encore validé
   const [timeLeft, setTimeLeft] = useState(0);
   const [key, setKey] = useState(0);
   const savedBelts = useRef<Set<string>>(new Set());
@@ -124,19 +147,19 @@ export default function CeinturesGame({
   // Time out → record as wrong, move to feedback
   useEffect(() => {
     if (phase.type !== "question" || !questionTime) return;
-    if (timeLeft === 0 && selectedChoice === null) {
+    if (timeLeft === 0 && selectedChoice === null && typedLocked === null) {
       const belt = belts[phase.beltIdx];
       const q = belt.questions[phase.qIdx];
       setAnswers((prev) => [
         ...prev,
-        { question: q.question, chosen: null, correct: q.choices[q.correctIndex], isCorrect: false },
+        { question: q.question, chosen: null, correct: correctDisplay(q), isCorrect: false },
       ]);
       goTo({ type: "feedback", beltIdx: phase.beltIdx, qIdx: phase.qIdx, correct: false });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
-  // ── Answer handler ──────────────────────────────────────────────────
+  // ── Answer handler (QCM) ────────────────────────────────────────────
   const handleAnswer = (beltIdx: number, qIdx: number, choiceIdx: number) => {
     if (selectedChoice !== null) return;
     const belt = belts[beltIdx];
@@ -145,12 +168,32 @@ export default function CeinturesGame({
     const isCorrect = choiceIdx === q.correctIndex;
     setAnswers((prev) => [
       ...prev,
-      { question: q.question, chosen: q.choices[choiceIdx], correct: q.choices[q.correctIndex], isCorrect },
+      { question: q.question, chosen: q.choices?.[choiceIdx] ?? null, correct: correctDisplay(q), isCorrect },
     ]);
     setTimeout(() => {
       setSelectedChoice(null);
       goTo({ type: "feedback", beltIdx, qIdx, correct: isCorrect });
     }, 550);
+  };
+
+  // ── Answer handler (saisie libre) ───────────────────────────────────
+  const handleTypedSubmit = (beltIdx: number, qIdx: number) => {
+    if (typedLocked !== null) return;
+    const given = typedValue.trim();
+    if (!given) return;
+    const belt = belts[beltIdx];
+    const q = belt.questions[qIdx];
+    const isCorrect = answersMatch(given, q.answer ?? "");
+    setTypedLocked(isCorrect);
+    setAnswers((prev) => [
+      ...prev,
+      { question: q.question, chosen: given, correct: correctDisplay(q), isCorrect },
+    ]);
+    setTimeout(() => {
+      setTypedValue("");
+      setTypedLocked(null);
+      goTo({ type: "feedback", beltIdx, qIdx, correct: isCorrect });
+    }, 650);
   };
 
   // ── Feedback → next question or belt result ─────────────────────────
@@ -167,6 +210,8 @@ export default function CeinturesGame({
   const startBelt = (beltIdx: number) => {
     setAnswers([]);
     setSelectedChoice(null);
+    setTypedValue("");
+    setTypedLocked(null);
     goTo({ type: "question", beltIdx, qIdx: 0 });
   };
 
@@ -384,28 +429,63 @@ export default function CeinturesGame({
                 </p>
                 <p className="text-2xl font-extrabold text-white leading-snug">{q.question}</p>
               </div>
-              <div className="space-y-2">
-                {q.choices.map((choice, i) => {
-                  const isSelected = selectedChoice === i;
-                  const isCorrect = i === q.correctIndex;
-                  return (
-                    <button key={i} onClick={() => handleAnswer(phase.beltIdx, phase.qIdx, i)}
-                      disabled={selectedChoice !== null}
-                      className="w-full text-left px-4 py-3.5 rounded-xl font-bold text-base flex items-center gap-3 transition-all hover:-translate-y-0.5 disabled:hover:translate-y-0"
-                      style={{
-                        background: isSelected ? (isCorrect ? "#16a34a" : "#dc2626") : "rgba(15,23,42,0.85)",
-                        border: isSelected ? "none" : "1px solid rgba(59,130,246,0.18)",
-                        color: isSelected ? "#fff" : "#cbd5e1",
-                      }}>
-                      <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                        style={{ background: "rgba(59,130,246,0.15)", color: "#3b82f6" }}>
-                        {String.fromCharCode(65 + i)}
-                      </span>
-                      {choice}
-                    </button>
-                  );
-                })}
-              </div>
+              {isTyped(q) ? (
+                /* ── Saisie libre : l'élève tape sa réponse ── */
+                <form
+                  onSubmit={(e) => { e.preventDefault(); handleTypedSubmit(phase.beltIdx, phase.qIdx); }}
+                  className="space-y-3"
+                >
+                  <input
+                    autoFocus
+                    type="text"
+                    inputMode="numeric"
+                    value={typedValue}
+                    onChange={(e) => setTypedValue(e.target.value)}
+                    disabled={typedLocked !== null}
+                    placeholder={q.placeholder ?? "Ta réponse…"}
+                    className="w-full text-center text-3xl font-extrabold py-4 rounded-2xl outline-none transition-all"
+                    style={{
+                      background: "rgba(15,23,42,0.85)",
+                      border: `2px solid ${
+                        typedLocked === true ? "#16a34a" : typedLocked === false ? "#dc2626" : "rgba(59,130,246,0.4)"
+                      }`,
+                      color: typedLocked === true ? "#4ade80" : typedLocked === false ? "#fca5a5" : "#fff",
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={typedLocked !== null || !typedValue.trim()}
+                    className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-40"
+                    style={{ background: "#3b82f6", color: "#fff" }}
+                  >
+                    Valider <ChevronRight className="w-4 h-4" />
+                  </button>
+                </form>
+              ) : (
+                /* ── QCM : choix multiples ── */
+                <div className="space-y-2">
+                  {(q.choices ?? []).map((choice, i) => {
+                    const isSelected = selectedChoice === i;
+                    const isCorrect = i === q.correctIndex;
+                    return (
+                      <button key={i} onClick={() => handleAnswer(phase.beltIdx, phase.qIdx, i)}
+                        disabled={selectedChoice !== null}
+                        className="w-full text-left px-4 py-3.5 rounded-xl font-bold text-base flex items-center gap-3 transition-all hover:-translate-y-0.5 disabled:hover:translate-y-0"
+                        style={{
+                          background: isSelected ? (isCorrect ? "#16a34a" : "#dc2626") : "rgba(15,23,42,0.85)",
+                          border: isSelected ? "none" : "1px solid rgba(59,130,246,0.18)",
+                          color: isSelected ? "#fff" : "#cbd5e1",
+                        }}>
+                        <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                          style={{ background: "rgba(59,130,246,0.15)", color: "#3b82f6" }}>
+                          {String.fromCharCode(65 + i)}
+                        </span>
+                        {choice}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })()}
@@ -421,7 +501,7 @@ export default function CeinturesGame({
               <div className="rounded-2xl p-5 mb-5 text-left"
                 style={{ background: "rgba(15,23,42,0.85)", border: `1px solid ${phase.correct ? "rgba(34,197,94,0.35)" : "rgba(248,113,113,0.35)"}` }}>
                 <p className="text-[13px] font-bold mb-1" style={{ color: phase.correct ? "#4ade80" : "#fca5a5" }}>
-                  {phase.correct ? "Correct !" : `✓ ${q.choices[q.correctIndex]}`}
+                  {phase.correct ? "Correct !" : `✓ ${correctDisplay(q)}`}
                 </p>
                 {q.explanation && (
                   <p className="text-xs leading-relaxed mt-1" style={{ color: "#94a3b8" }}>{q.explanation}</p>
