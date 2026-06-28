@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifyStudentId } from "@/lib/student-session";
 import GamePlayer from "./game-player";
 import MemoryGame from "./games/memory-game";
 import QuizGame from "./games/quiz-game";
@@ -20,7 +21,7 @@ export default async function PlayPage({
   params: Promise<{ gameId: string }>;
 }) {
   const cookieStore = await cookies();
-  const studentId = cookieStore.get("student_id")?.value;
+  const studentId = verifyStudentId(cookieStore.get("student_id")?.value);
   if (!studentId) redirect("/student");
 
   const { gameId } = await params;

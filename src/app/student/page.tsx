@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { studentLogin } from "./actions";
+import { verifyStudentId } from "@/lib/student-session";
 
 export default async function StudentPage({
   searchParams,
@@ -9,7 +10,7 @@ export default async function StudentPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const cookieStore = await cookies();
-  if (cookieStore.get("student_id")) redirect("/student/home");
+  if (verifyStudentId(cookieStore.get("student_id")?.value)) redirect("/student/home");
 
   const { error } = await searchParams;
 

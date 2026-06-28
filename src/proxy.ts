@@ -1,6 +1,40 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-export function proxy(request: NextRequest) {
+// Vérification HMAC compatible Edge Runtime (Web Crypto) du cookie élève signé.
+// Doit produire le même résultat que src/lib/student-session.ts (HMAC-SHA256,
+// base64url non paddé). On vérifie ici pour éviter une boucle de redirection
+// avec un cookie présent mais invalide, et pour bloquer en amont.
+function base64url(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function hasValidStudentSession(raw: string | undefined): Promise<boolean> {
+  if (!raw) return false;
+  const idx = raw.lastIndexOf(".");
+  if (idx <= 0 || idx === raw.length - 1) return false;
+  const studentId = raw.slice(0, idx);
+  const provided = raw.slice(idx + 1);
+  const secret = process.env.STUDENT_SESSION_SECRET;
+  if (!secret || secret.length < 16) return false;
+  try {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(studentId));
+    return base64url(mac) === provided;
+  } catch {
+    return false;
+  }
+}
+
+export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isTeacherProtected =
     path.startsWith("/dashboard") ||
@@ -13,7 +47,9 @@ export function proxy(request: NextRequest) {
   const hasTeacherSession = request.cookies
     .getAll()
     .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
-  const hasStudentSession = !!request.cookies.get("student_id");
+  const hasStudentSession = await hasValidStudentSession(
+    request.cookies.get("student_id")?.value
+  );
 
   if (!hasTeacherSession && isTeacherProtected) {
     const url = request.nextUrl.clone();

@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { signStudentId } from "@/lib/student-session";
 
 export async function studentLogin(formData: FormData) {
   const classCode = (formData.get("classCode") as string)?.trim().toLowerCase();
@@ -36,7 +37,7 @@ export async function studentLogin(formData: FormData) {
   }
 
   const cookieStore = await cookies();
-  cookieStore.set("student_id", student.id, {
+  cookieStore.set("student_id", signStudentId(student.id), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
