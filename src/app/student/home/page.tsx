@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { studentLogout } from "../actions";
+import { verifyStudentId } from "@/lib/student-session";
 
 const GAME_ICONS: Record<string, string> = {
   "image-click": "🎯",
@@ -31,7 +32,7 @@ const GAME_COLORS = [
 
 export default async function StudentHomePage() {
   const cookieStore = await cookies();
-  const studentId = cookieStore.get("student_id")?.value;
+  const studentId = verifyStudentId(cookieStore.get("student_id")?.value);
   if (!studentId) redirect("/student");
 
   const admin = createAdminClient();

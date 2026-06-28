@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { verifyStudentId } from "@/lib/student-session";
 import GamePlayer from "./game-player";
 import MemoryGame from "./games/memory-game";
 import QuizGame from "./games/quiz-game";
@@ -36,7 +37,7 @@ export default async function PlayPage({
     studentId = "preview";
   } else {
     const cookieStore = await cookies();
-    studentId = cookieStore.get("student_id")?.value ?? "";
+    studentId = verifyStudentId(cookieStore.get("student_id")?.value) ?? "";
     if (!studentId) redirect("/student");
   }
 
